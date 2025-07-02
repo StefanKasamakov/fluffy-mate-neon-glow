@@ -9,6 +9,7 @@ import Discovery from "./pages/Discovery";
 import Matches from "./pages/Matches";
 import Chat from "./pages/Chat";
 import PetProfile from "./pages/PetProfile";
+import Premium from "./pages/Premium";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/matches" element={<Matches />} />
           <Route path="/chat/:matchId" element={<Chat />} />
           <Route path="/profile" element={<PetProfile />} />
+          <Route path="/premium" element={<Premium />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

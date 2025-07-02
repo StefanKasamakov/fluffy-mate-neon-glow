@@ -1,12 +1,32 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, X, MapPin, Settings, User } from "lucide-react";
+import { Heart, X, MapPin, Settings, User, SlidersHorizontal } from "lucide-react";
+import { useSpring, animated } from "react-spring";
+import { useDrag } from "@use-gesture/react";
+import FilterModal, { FilterSettings } from "@/components/FilterModal";
 
 const Discovery = () => {
   const [currentPetIndex, setCurrentPetIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filters, setFilters] = useState<FilterSettings>({
+    breed: "Any Breed",
+    distance: 25,
+    ageRange: [1, 10],
+    gender: "any",
+    verifiedOnly: false
+  });
+
+  const cardRef = useRef<HTMLDivElement>(null);
+  
+  const [{ x, rotate, scale }, api] = useSpring(() => ({
+    x: 0,
+    rotate: 0,
+    scale: 1,
+    config: { mass: 1, tension: 300, friction: 40 }
+  }));
 
   const pets = [
     {
@@ -47,12 +67,47 @@ const Discovery = () => {
   const currentPet = pets[currentPetIndex];
 
   const handleSwipe = (direction: 'left' | 'right') => {
-    setSwipeDirection(direction);
+    const isLike = direction === 'right';
+    
+    api.start({
+      x: isLike ? 300 : -300,
+      rotate: isLike ? 30 : -30,
+      scale: 0.8,
+      config: { duration: 400 }
+    });
     
     setTimeout(() => {
       setCurrentPetIndex((prev) => (prev + 1) % pets.length);
-      setSwipeDirection(null);
-    }, 600);
+      api.set({ x: 0, rotate: 0, scale: 1 });
+    }, 400);
+  };
+
+  const bind = useDrag(
+    ({ active, movement: [mx], direction: [xDir], velocity: [vx] }) => {
+      const trigger = vx > 0.2;
+      const dir = xDir < 0 ? -1 : 1;
+      
+      if (!active && trigger) {
+        handleSwipe(dir > 0 ? 'right' : 'left');
+      } else {
+        api.start({
+          x: active ? mx : 0,
+          rotate: active ? mx / 10 : 0,
+          scale: active ? 1.05 : 1,
+          immediate: (name) => active && name === 'x'
+        });
+      }
+    },
+    { 
+      axis: 'x',
+      bounds: { left: -100, right: 100, top: 0, bottom: 0 },
+      rubberband: true 
+    }
+  );
+
+  const handleApplyFilters = (newFilters: FilterSettings) => {
+    setFilters(newFilters);
+    // In real app, this would trigger a new API call with filters
   };
 
   if (!currentPet) {
@@ -78,22 +133,27 @@ const Discovery = () => {
         <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
           FluffyMatch
         </h1>
-        <Link to="/settings">
-          <Button variant="ghost" size="sm">
-            <Settings className="w-5 h-5" />
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setIsFilterOpen(true)}>
+            <SlidersHorizontal className="w-5 h-5" />
           </Button>
-        </Link>
+          <Link to="/settings">
+            <Button variant="ghost" size="sm">
+              <Settings className="w-5 h-5" />
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Card Stack */}
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="relative w-full max-w-sm">
           {/* Main Card */}
-          <div 
-            className={`relative bg-gradient-card border border-border rounded-2xl overflow-hidden shadow-card transition-all duration-600 ${
-              swipeDirection === 'left' ? 'animate-swipe-left' : 
-              swipeDirection === 'right' ? 'animate-swipe-right' : ''
-            }`}
+          <animated.div 
+            ref={cardRef}
+            {...bind()}
+            style={{ x, rotate: rotate.to((r: number) => `${r}deg`), scale }}
+            className="relative bg-gradient-card border border-border rounded-2xl overflow-hidden shadow-card touch-none select-none cursor-grab active:cursor-grabbing"
           >
             {/* Image */}
             <div className="relative h-96">
@@ -133,7 +193,7 @@ const Discovery = () => {
                 <span className="text-xs text-gray-300">Owner: {currentPet.owner}</span>
               </div>
             </div>
-          </div>
+          </animated.div>
 
           {/* Action Buttons */}
           <div className="flex justify-center gap-6 mt-8">
@@ -189,6 +249,14 @@ const Discovery = () => {
           </div>
         </div>
       </div>
+
+      {/* Filter Modal */}
+      <FilterModal
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        onApply={handleApplyFilters}
+        currentFilters={filters}
+      />
     </div>
   );
 };

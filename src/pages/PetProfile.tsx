@@ -122,9 +122,20 @@ const PetProfile = () => {
               <div className="grid grid-cols-2 gap-3">
                 {certificates.map((cert, index) => (
                   <div key={index} className="relative">
-                    <div className="aspect-[4/3] bg-secondary rounded-lg flex items-center justify-center">
-                      <span className="text-xs text-muted-foreground">Certificate {index + 1}</span>
+                    <div className="aspect-[4/3] bg-secondary rounded-lg flex items-center justify-center border border-border">
+                      <div className="text-center p-2">
+                        <div className="w-8 h-8 mx-auto mb-1 bg-neon-green/20 rounded flex items-center justify-center">
+                          <span className="text-neon-green text-xs">✓</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">Health Certificate</span>
+                      </div>
                     </div>
+                    <button
+                      onClick={() => setCertificates(certificates.filter((_, i) => i !== index))}
+                      className="absolute -top-2 -right-2 bg-destructive rounded-full p-1"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
                   </div>
                 ))}
                 <button
@@ -132,9 +143,12 @@ const PetProfile = () => {
                   className="aspect-[4/3] border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center hover:border-accent transition-colors"
                 >
                   <Camera className="w-5 h-5 text-muted-foreground mb-1" />
-                  <span className="text-xs text-muted-foreground">Upload</span>
+                  <span className="text-xs text-muted-foreground">Upload Document</span>
                 </button>
               </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Upload vaccination records, health certificates, and breeding documentation for verification.
+              </p>
             </div>
           </div>
         </Card>
