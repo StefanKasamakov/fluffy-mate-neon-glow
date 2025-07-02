@@ -361,9 +361,11 @@ const Discovery = () => {
           <Button variant="ghost" size="sm" onClick={() => setIsFilterOpen(true)}>
             <SlidersHorizontal className="w-5 h-5" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            <LogOut className="w-5 h-5" />
-          </Button>
+          <Link to="/profile">
+            <Button variant="ghost" size="sm">
+              <Settings className="w-5 h-5" />
+            </Button>
+          </Link>
         </div>
       </div>
 

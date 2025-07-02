@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Camera, Plus, X, MapPin, Locate } from "lucide-react";
+import { ArrowLeft, Camera, Plus, X, MapPin, Locate, Settings, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -37,7 +37,7 @@ const PetProfile = () => {
   });
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   // Load existing pet profile if it exists
   useEffect(() => {
@@ -433,9 +433,11 @@ const PetProfile = () => {
           </Button>
         </Link>
         <h1 className="text-lg font-semibold">Pet Profile</h1>
-        <Button variant="ghost" size="sm" className="text-accent" onClick={handleSave} disabled={loading}>
-          {loading ? 'Saving...' : 'Save'}
-        </Button>
+        <Link to="/settings">
+          <Button variant="ghost" size="sm">
+            <Settings className="w-5 h-5" />
+          </Button>
+        </Link>
       </div>
 
       <div className="p-4 space-y-6">
@@ -667,13 +669,27 @@ const PetProfile = () => {
           </div>
         </Card>
 
-        <Button 
-          className="w-full bg-gradient-primary hover:opacity-90 shadow-button"
-          onClick={handleSave}
-          disabled={loading}
-        >
-          {loading ? 'Saving...' : 'Save Profile'}
-        </Button>
+        <div className="space-y-3">
+          <Button 
+            className="w-full bg-gradient-primary hover:opacity-90 shadow-button"
+            onClick={handleSave}
+            disabled={loading}
+          >
+            {loading ? 'Saving...' : 'Save Profile'}
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="w-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            onClick={async () => {
+              await signOut();
+              navigate('/onboarding');
+            }}
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Log Out
+          </Button>
+        </div>
       </div>
     </div>
   );

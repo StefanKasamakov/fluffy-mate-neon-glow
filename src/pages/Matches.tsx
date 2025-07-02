@@ -50,15 +50,20 @@ const Matches = () => {
         // Determine which pet is the other user's pet
         const otherPet = match.pet1.user_id === user.id ? match.pet2 : match.pet1;
         
-        // Get the most recent message for this match
+        // Get all messages for this match to check for unread ones
         const { data: messages } = await supabase
           .from('messages')
-          .select('message_text, created_at')
+          .select('message_text, created_at, sender_user_id, is_read')
           .eq('match_id', match.id)
-          .order('created_at', { ascending: false })
-          .limit(1);
+          .order('created_at', { ascending: false });
 
         const lastMessage = messages?.[0];
+        
+        // Check for unread messages sent by the other user
+        const unreadMessages = messages?.filter(msg => 
+          msg.sender_user_id !== user.id && !msg.is_read
+        ) || [];
+        
         const matchedAt = new Date(match.created_at);
         const now = new Date();
         const diffTime = Math.abs(now.getTime() - matchedAt.getTime());
@@ -83,7 +88,7 @@ const Matches = () => {
           photo: otherPet.pet_photos?.[0]?.photo_url || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=200&h=200&fit=crop',
           matchedAt: timeAgo,
           lastMessage: lastMessage?.message_text || 'Say hello!',
-          unread: !lastMessage, // If no messages, consider it unread
+          unread: unreadMessages.length > 0,
           verified: otherPet.verified || false
         };
       }) || []);

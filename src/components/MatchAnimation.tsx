@@ -98,13 +98,16 @@ export const MatchAnimation = ({
           showContent ? 'scale-100 opacity-100 translate-y-0' : 'scale-90 opacity-0 translate-y-8'
         }`}
       >
-        {/* Match Text with Glow Effect */}
+        {/* Match Text with Better Outline */}
         <div className="mb-10">
           <div className="relative">
-            <h1 className="text-6xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4 animate-glow">
+            <h1 className="text-6xl font-bold text-white mb-4 relative z-10" style={{
+              textShadow: '0 0 10px rgba(255, 255, 255, 0.5), 0 0 20px rgba(255, 255, 255, 0.3), 0 0 30px rgba(255, 255, 255, 0.2)',
+              WebkitTextStroke: '2px rgba(255, 255, 255, 0.8)'
+            }}>
               It's a Match!
             </h1>
-            <div className="absolute inset-0 text-6xl font-bold bg-gradient-primary bg-clip-text text-transparent blur-lg opacity-50">
+            <div className="absolute inset-0 text-6xl font-bold bg-gradient-primary bg-clip-text text-transparent blur-sm opacity-80">
               It's a Match!
             </div>
           </div>
