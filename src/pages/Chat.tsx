@@ -40,6 +40,21 @@ const Chat = () => {
       })) || [];
 
       setMessages(formattedMessages);
+
+      // Mark unread messages as read when loading chat
+      if (user && data?.length) {
+        const unreadMessages = data.filter(msg => 
+          msg.sender_user_id !== user.id && !msg.is_read
+        );
+        
+        for (const msg of unreadMessages) {
+          try {
+            await supabase.rpc('mark_message_as_read', { message_id: msg.id });
+          } catch (markError) {
+            console.error('Error marking message as read:', markError);
+          }
+        }
+      }
     } catch (error) {
       console.error('Error loading messages:', error);
     }

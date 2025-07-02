@@ -81,10 +81,40 @@ export type Database = {
           },
         ]
       }
+      message_reads: {
+        Row: {
+          id: string
+          message_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          message_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          message_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reads_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           created_at: string
           id: string
+          is_read: boolean | null
           match_id: string
           message_text: string
           sender_user_id: string
@@ -92,6 +122,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_read?: boolean | null
           match_id: string
           message_text: string
           sender_user_id: string
@@ -99,6 +130,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_read?: boolean | null
           match_id?: string
           message_text?: string
           sender_user_id?: string
@@ -313,7 +345,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      mark_message_as_read: {
+        Args: { message_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

@@ -10,7 +10,7 @@ export const useUnreadMessages = () => {
     if (!user) return;
 
     try {
-      // Get user's matches
+      // Count unread messages more efficiently using the new is_read field
       const { data: matches } = await supabase
         .from('matches')
         .select(`
@@ -26,22 +26,20 @@ export const useUnreadMessages = () => {
         match.pet1.user_id === user.id || match.pet2.user_id === user.id
       );
 
-      let totalUnread = 0;
-
-      // For each match, count unread messages
-      for (const match of userMatches) {
-        const { data: messages } = await supabase
-          .from('messages')
-          .select('sender_user_id')
-          .eq('match_id', match.id)
-          .neq('sender_user_id', user.id); // Messages not sent by current user
-
-        if (messages) {
-          totalUnread += messages.length;
-        }
+      if (userMatches.length === 0) {
+        setUnreadCount(0);
+        return;
       }
 
-      setUnreadCount(totalUnread);
+      // Count unread messages across all user's matches
+      const { count } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .in('match_id', userMatches.map(m => m.id))
+        .neq('sender_user_id', user.id)
+        .eq('is_read', false);
+
+      setUnreadCount(count || 0);
     } catch (error) {
       console.error('Error loading unread count:', error);
     }
