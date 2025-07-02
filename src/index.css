@@ -6,45 +6,45 @@
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
+    --background: 215 30% 6%;
+    --foreground: 210 40% 96%;
 
-    --card: 240 10% 7%;
-    --card-foreground: 0 0% 98%;
+    --card: 217 25% 10%;
+    --card-foreground: 210 40% 96%;
 
-    --popover: 240 10% 7%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 217 25% 10%;
+    --popover-foreground: 210 40% 96%;
 
     --primary: 283 100% 60%;
     --primary-foreground: 0 0% 0%;
 
-    --secondary: 240 8% 14%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 215 20% 18%;
+    --secondary-foreground: 210 40% 96%;
 
-    --muted: 240 8% 14%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted: 215 20% 18%;
+    --muted-foreground: 215 15% 65%;
 
-    --accent: 195 100% 50%;
+    --accent: 195 100% 55%;
     --accent-foreground: 0 0% 0%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 8% 14%;
-    --input: 240 8% 14%;
+    --border: 215 20% 18%;
+    --input: 215 20% 18%;
     --ring: 283 100% 60%;
 
     /* Neon accent colors */
-    --neon-pink: 320 100% 60%;
-    --neon-cyan: 195 100% 50%;
-    --neon-purple: 283 100% 60%;
-    --neon-green: 120 100% 50%;
-    --neon-yellow: 60 100% 50%;
+    --neon-pink: 320 100% 65%;
+    --neon-cyan: 195 100% 55%;
+    --neon-purple: 283 100% 65%;
+    --neon-green: 120 100% 55%;
+    --neon-yellow: 60 100% 55%;
 
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--neon-pink)), hsl(var(--neon-purple)));
     --gradient-accent: linear-gradient(135deg, hsl(var(--neon-cyan)), hsl(var(--neon-purple)));
-    --gradient-card: linear-gradient(145deg, hsl(var(--card)), hsl(240 10% 8%));
+    --gradient-card: linear-gradient(145deg, hsl(var(--card)), hsl(217 25% 12%));
     
     /* Shadows and glows */
     --shadow-neon: 0 0 20px hsl(var(--neon-pink) / 0.3);

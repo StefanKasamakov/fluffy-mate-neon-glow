@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, X, MapPin, Settings, User, SlidersHorizontal, LogOut, RotateCcw } from "lucide-react";
+import { Heart, X, MapPin, User, SlidersHorizontal, LogOut, RotateCcw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSpring, animated } from "react-spring";
 import { useDrag } from "@use-gesture/react";
@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSwipeHistory } from "@/hooks/useSwipeHistory";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { useToast } from "@/hooks/use-toast";
+import SettingsDropdown from "@/components/SettingsDropdown";
 
 const Discovery = () => {
   const [currentPetIndex, setCurrentPetIndex] = useState(0);
@@ -361,11 +362,7 @@ const Discovery = () => {
           <Button variant="ghost" size="sm" onClick={() => setIsFilterOpen(true)}>
             <SlidersHorizontal className="w-5 h-5" />
           </Button>
-          <Link to="/profile">
-            <Button variant="ghost" size="sm">
-              <Settings className="w-5 h-5" />
-            </Button>
-          </Link>
+          <SettingsDropdown />
         </div>
       </div>
 

@@ -12,10 +12,11 @@ const Onboarding = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signUp, signIn, signInWithGoogle, signInWithApple, user } = useAuth();
+  const { signUp, signIn, signInWithGoogle, signInWithApple, resetPassword, user } = useAuth();
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -103,6 +104,36 @@ const Onboarding = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast({
+        title: "Error",
+        description: "Please enter your email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await resetPassword(email);
+    
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Check your email for a password reset link",
+      });
+      setShowForgotPassword(false);
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
@@ -168,7 +199,37 @@ const Onboarding = () => {
             </div>
 
             {/* Email Form */}
-            <form onSubmit={handleEmailAuth} className="space-y-4">
+            {showForgotPassword ? (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div>
+                  <Input
+                    type="email"
+                    placeholder="Email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="bg-secondary border-border"
+                    required
+                  />
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  disabled={loading}
+                  className="w-full bg-gradient-primary hover:opacity-90 shadow-button"
+                >
+                  {loading ? "Sending..." : "Send Reset Email"}
+                </Button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(false)}
+                  className="w-full text-sm text-accent hover:text-accent/80"
+                >
+                  Back to login
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleEmailAuth} className="space-y-4">
               <div>
                 <Input
                   type="email"
@@ -209,7 +270,20 @@ const Onboarding = () => {
               >
                 {loading ? "Loading..." : isLogin ? "Sign In" : "Create Account"}
               </Button>
+
+              {isLogin && (
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-accent hover:text-accent/80"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
             </form>
+            )}
 
             {/* Toggle between login/signup */}
             <div className="text-center">
