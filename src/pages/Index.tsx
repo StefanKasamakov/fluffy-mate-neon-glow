@@ -1,11 +1,19 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+      <div className="text-center space-y-6">
+        <h1 className="text-5xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+          FluffyMatch
+        </h1>
+        <p className="text-xl text-muted-foreground">Find the perfect mate for your furry friend</p>
+        <Link to="/onboarding">
+          <Button className="bg-gradient-primary hover:opacity-90 shadow-button text-lg px-8 py-3">
+            Get Started
+          </Button>
+        </Link>
       </div>
     </div>
   );

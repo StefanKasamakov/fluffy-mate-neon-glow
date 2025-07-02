@@ -1,0 +1,194 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Camera, Plus, X } from "lucide-react";
+
+const PetProfile = () => {
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [certificates, setCertificates] = useState<string[]>([]);
+
+  const addPhoto = () => {
+    // In real app, this would open camera/gallery
+    const newPhoto = `https://images.unsplash.com/photo-${Math.random() > 0.5 ? '1582562124811-c09040d0a901' : '1535268647677-300dbf3d78d1'}?w=400&h=400&fit=crop`;
+    setPhotos([...photos, newPhoto]);
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos(photos.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-border">
+        <Link to="/discovery">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+        </Link>
+        <h1 className="text-lg font-semibold">Pet Profile</h1>
+        <Button variant="ghost" size="sm" className="text-accent">
+          Save
+        </Button>
+      </div>
+
+      <div className="p-4 space-y-6">
+        {/* Photos Section */}
+        <Card className="p-4 bg-gradient-card border-border">
+          <h3 className="text-lg font-semibold mb-4">Photos</h3>
+          <div className="grid grid-cols-3 gap-3">
+            {photos.map((photo, index) => (
+              <div key={index} className="relative aspect-square">
+                <img
+                  src={photo}
+                  alt={`Pet photo ${index + 1}`}
+                  className="w-full h-full object-cover rounded-lg"
+                />
+                <button
+                  onClick={() => removePhoto(index)}
+                  className="absolute -top-2 -right-2 bg-destructive rounded-full p-1"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+            {photos.length < 6 && (
+              <button
+                onClick={addPhoto}
+                className="aspect-square border-2 border-dashed border-border rounded-lg flex items-center justify-center hover:border-accent transition-colors"
+              >
+                <Plus className="w-6 h-6 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+        </Card>
+
+        {/* Basic Info */}
+        <Card className="p-4 bg-gradient-card border-border">
+          <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
+          <div className="space-y-4">
+            <Input placeholder="Pet's name" className="bg-secondary border-border" />
+            
+            <Select>
+              <SelectTrigger className="bg-secondary border-border">
+                <SelectValue placeholder="Breed" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border-border z-50">
+                <SelectItem value="golden-retriever">Golden Retriever</SelectItem>
+                <SelectItem value="labrador">Labrador</SelectItem>
+                <SelectItem value="persian-cat">Persian Cat</SelectItem>
+                <SelectItem value="siamese-cat">Siamese Cat</SelectItem>
+                <SelectItem value="bulldog">Bulldog</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Input placeholder="Age (years)" type="number" className="bg-secondary border-border" />
+              <Select>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue placeholder="Gender" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Textarea
+              placeholder="Tell us about your pet's personality, traits, and what makes them special..."
+              className="bg-secondary border-border min-h-[100px]"
+            />
+          </div>
+        </Card>
+
+        {/* Health & Verification */}
+        <Card className="p-4 bg-gradient-card border-border">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Health & Verification</h3>
+            <Badge variant="secondary" className="bg-neon-green/20 text-neon-green border-neon-green">
+              Verified
+            </Badge>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Vaccination Records</label>
+              <div className="grid grid-cols-2 gap-3">
+                {certificates.map((cert, index) => (
+                  <div key={index} className="relative">
+                    <div className="aspect-[4/3] bg-secondary rounded-lg flex items-center justify-center">
+                      <span className="text-xs text-muted-foreground">Certificate {index + 1}</span>
+                    </div>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setCertificates([...certificates, 'new-cert'])}
+                  className="aspect-[4/3] border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center hover:border-accent transition-colors"
+                >
+                  <Camera className="w-5 h-5 text-muted-foreground mb-1" />
+                  <span className="text-xs text-muted-foreground">Upload</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Preferences */}
+        <Card className="p-4 bg-gradient-card border-border">
+          <h3 className="text-lg font-semibold mb-4">Mate Preferences</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Preferred Breeds</label>
+              <Select>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue placeholder="Select preferred breeds" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  <SelectItem value="any">Any Breed</SelectItem>
+                  <SelectItem value="same">Same Breed Only</SelectItem>
+                  <SelectItem value="similar">Similar Breeds</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Distance Range</label>
+              <Select>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue placeholder="Select distance range" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  <SelectItem value="5">Within 5 miles</SelectItem>
+                  <SelectItem value="10">Within 10 miles</SelectItem>
+                  <SelectItem value="25">Within 25 miles</SelectItem>
+                  <SelectItem value="50">Within 50 miles</SelectItem>
+                  <SelectItem value="100">Within 100 miles</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Age Range</label>
+              <div className="grid grid-cols-2 gap-4">
+                <Input placeholder="Min age" type="number" className="bg-secondary border-border" />
+                <Input placeholder="Max age" type="number" className="bg-secondary border-border" />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Button className="w-full bg-gradient-primary hover:opacity-90 shadow-button">
+          Save Profile
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+export default PetProfile;
