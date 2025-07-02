@@ -32,6 +32,18 @@ const Discovery = () => {
     loadPets();
   }, [user]);
 
+  // Calculate distance between two coordinates using Haversine formula
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 3959; // Earth's radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
   const loadPets = async () => {
     try {
       setLoading(true);
@@ -52,18 +64,49 @@ const Discovery = () => {
 
       if (error) throw error;
 
+      // Get current user's location for distance calculation
+      let userLocation: { lat: number; lon: number } | null = null;
+      if (user) {
+        const { data: userPet } = await supabase
+          .from('pets')
+          .select('latitude, longitude')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (userPet?.latitude && userPet?.longitude) {
+          userLocation = { lat: userPet.latitude, lon: userPet.longitude };
+        }
+      }
+
       // Transform data to match the component's expected format
-      const transformedPets = data?.map(pet => ({
-        id: pet.id,
-        name: pet.pet_name,
-        breed: pet.breed || 'Mixed Breed',
-        age: pet.age || 1,
-        location: pet.location || '2.5 miles away',
-        description: pet.description || 'No description available.',
-        photo: pet.pet_photos?.[0]?.photo_url || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=600&fit=crop',
-        verified: pet.verified || false,
-        owner: pet.owner_name || 'Anonymous'
-      })) || [];
+      const transformedPets = data?.map(pet => {
+        let locationDisplay = pet.location || 'Location not specified';
+        
+        // Calculate distance if both user and pet have coordinates
+        if (userLocation && pet.latitude && pet.longitude) {
+          const distance = calculateDistance(
+            userLocation.lat,
+            userLocation.lon,
+            pet.latitude,
+            pet.longitude
+          );
+          locationDisplay = `${distance.toFixed(1)} miles away`;
+        }
+
+        return {
+          id: pet.id,
+          name: pet.pet_name,
+          breed: pet.breed || 'Mixed Breed',
+          age: pet.age || 1,
+          location: locationDisplay,
+          description: pet.description || 'No description available.',
+          photo: pet.pet_photos?.[0]?.photo_url || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=600&fit=crop',
+          verified: pet.verified || false,
+          owner: pet.owner_name || 'Anonymous'
+        };
+      }) || [];
 
       setPets(transformedPets);
     } catch (error) {

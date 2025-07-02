@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Camera, Plus, X } from "lucide-react";
+import { ArrowLeft, Camera, Plus, X, MapPin, Locate } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,6 +15,7 @@ const PetProfile = () => {
   const [photos, setPhotos] = useState<string[]>([]);
   const [certificates, setCertificates] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
   const [petId, setPetId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     petName: "",
@@ -26,7 +27,13 @@ const PetProfile = () => {
     preferredBreeds: "",
     distance: "",
     minAge: "",
-    maxAge: ""
+    maxAge: "",
+    location: "",
+    city: "",
+    state: "",
+    country: "",
+    latitude: null as number | null,
+    longitude: null as number | null
   });
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -69,7 +76,13 @@ const PetProfile = () => {
           preferredBreeds: pet.pet_preferences?.[0]?.preferred_breeds || "",
           distance: pet.pet_preferences?.[0]?.distance_range?.toString() || "",
           minAge: pet.pet_preferences?.[0]?.min_age?.toString() || "",
-          maxAge: pet.pet_preferences?.[0]?.max_age?.toString() || ""
+          maxAge: pet.pet_preferences?.[0]?.max_age?.toString() || "",
+          location: pet.location || "",
+          city: pet.city || "",
+          state: pet.state || "",
+          country: pet.country || "",
+          latitude: pet.latitude,
+          longitude: pet.longitude
         });
         
         const photoUrls = pet.pet_photos?.map((photo: any) => photo.photo_url) || [];
@@ -78,6 +91,90 @@ const PetProfile = () => {
     } catch (error) {
       console.error('Error loading profile:', error);
     }
+  };
+
+  const getCurrentLocation = async () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Geolocation not supported",
+        description: "Your browser doesn't support geolocation.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLocationLoading(true);
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        try {
+          // Reverse geocoding to get address
+          const response = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+          );
+          const data = await response.json();
+          
+          const locationString = `${data.city || data.locality || 'Unknown City'}, ${data.principalSubdivision || data.countryName || 'Unknown'}`;
+          
+          setFormData(prev => ({
+            ...prev,
+            location: locationString,
+            city: data.city || data.locality || '',
+            state: data.principalSubdivision || '',
+            country: data.countryName || '',
+            latitude,
+            longitude
+          }));
+          
+          toast({
+            title: "Location updated",
+            description: `Location set to ${locationString}`
+          });
+        } catch (error) {
+          console.error('Error getting address:', error);
+          // Fallback to coordinates only
+          setFormData(prev => ({
+            ...prev,
+            location: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+            latitude,
+            longitude
+          }));
+          
+          toast({
+            title: "Location updated",
+            description: "Location set using coordinates"
+          });
+        } finally {
+          setLocationLoading(false);
+        }
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        setLocationLoading(false);
+        
+        let errorMessage = "Unable to get your location.";
+        if (error.code === 1) {
+          errorMessage = "Location access denied. Please enable location permissions.";
+        } else if (error.code === 2) {
+          errorMessage = "Location unavailable. Please try again.";
+        } else if (error.code === 3) {
+          errorMessage = "Location request timed out. Please try again.";
+        }
+        
+        toast({
+          title: "Location error",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes
+      }
+    );
   };
 
   const uploadFile = async (file: File, bucket: string): Promise<string | null> => {
@@ -219,6 +316,12 @@ const PetProfile = () => {
         age: formData.age ? parseInt(formData.age) : null,
         gender: formData.gender || null,
         description: formData.description || null,
+        location: formData.location || null,
+        city: formData.city || null,
+        state: formData.state || null,
+        country: formData.country || null,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
       };
 
       let currentPetId = petId;
@@ -422,6 +525,43 @@ const PetProfile = () => {
               value={formData.description}
               onChange={(e) => handleInputChange('description', e.target.value)}
             />
+          </div>
+        </Card>
+
+        {/* Location Section */}
+        <Card className="p-4 bg-gradient-card border-border">
+          <h3 className="text-lg font-semibold mb-4">Location</h3>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Input 
+                placeholder="Enter your location or city" 
+                className="bg-secondary border-border flex-1"
+                value={formData.location}
+                onChange={(e) => handleInputChange('location', e.target.value)}
+              />
+              <Button
+                onClick={getCurrentLocation}
+                disabled={locationLoading}
+                variant="outline"
+                size="icon"
+                className="border-border"
+              >
+                {locationLoading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                ) : (
+                  <Locate className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+            {formData.location && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="w-4 h-4" />
+                <span>{formData.location}</span>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Click the location icon to use your current location, or manually enter your city/area.
+            </p>
           </div>
         </Card>
 

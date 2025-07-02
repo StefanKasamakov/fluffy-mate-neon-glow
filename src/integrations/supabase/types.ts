@@ -118,13 +118,18 @@ export type Database = {
         Row: {
           age: number | null
           breed: string | null
+          city: string | null
+          country: string | null
           created_at: string
           description: string | null
           gender: string | null
           id: string
+          latitude: number | null
           location: string | null
+          longitude: number | null
           owner_name: string
           pet_name: string
+          state: string | null
           updated_at: string
           user_id: string
           verified: boolean | null
@@ -132,13 +137,18 @@ export type Database = {
         Insert: {
           age?: number | null
           breed?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           description?: string | null
           gender?: string | null
           id?: string
+          latitude?: number | null
           location?: string | null
+          longitude?: number | null
           owner_name: string
           pet_name: string
+          state?: string | null
           updated_at?: string
           user_id: string
           verified?: boolean | null
@@ -146,13 +156,18 @@ export type Database = {
         Update: {
           age?: number | null
           breed?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           description?: string | null
           gender?: string | null
           id?: string
+          latitude?: number | null
           location?: string | null
+          longitude?: number | null
           owner_name?: string
           pet_name?: string
+          state?: string | null
           updated_at?: string
           user_id?: string
           verified?: boolean | null
