@@ -2,13 +2,16 @@ import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, X, MapPin, Settings, User, SlidersHorizontal, LogOut } from "lucide-react";
+import { Heart, X, MapPin, Settings, User, SlidersHorizontal, LogOut, RotateCcw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSpring, animated } from "react-spring";
 import { useDrag } from "@use-gesture/react";
 import FilterModal, { FilterSettings } from "@/components/FilterModal";
 import { MatchAnimation } from "@/components/MatchAnimation";
 import { supabase } from "@/integrations/supabase/client";
+import { useSwipeHistory } from "@/hooks/useSwipeHistory";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { useToast } from "@/hooks/use-toast";
 
 const Discovery = () => {
   const [currentPetIndex, setCurrentPetIndex] = useState(0);
@@ -21,6 +24,9 @@ const Discovery = () => {
   const [currentMatch, setCurrentMatch] = useState<any>(null);
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { addSwipeAction, undoLastSwipe, canUndo } = useSwipeHistory();
+  const { unreadCount } = useUnreadMessages();
   const [filters, setFilters] = useState<FilterSettings>({
     breed: "Any Breed",
     distance: 25,
@@ -79,6 +85,8 @@ const Discovery = () => {
   const handleLike = async (likedPetId: string) => {
     if (!user || !userPet) return;
 
+    addSwipeAction(likedPetId, 'like');
+
     try {
       // Create a like
       const { error } = await supabase
@@ -94,6 +102,37 @@ const Discovery = () => {
       await checkForMatch(userPet.id, likedPetId);
     } catch (error) {
       console.error('Error creating like:', error);
+    }
+  };
+
+  const handleDislike = (dislikedPetId: string) => {
+    addSwipeAction(dislikedPetId, 'dislike');
+  };
+
+  const handleRewind = () => {
+    const lastAction = undoLastSwipe();
+    if (lastAction && currentPetIndex > 0) {
+      setCurrentPetIndex(prev => prev - 1);
+      
+      // If the last action was a like, remove it from database
+      if (lastAction.action === 'like' && userPet) {
+        supabase
+          .from('likes')
+          .delete()
+          .eq('liker_pet_id', userPet.id)
+          .eq('liked_pet_id', lastAction.petId)
+          .then(() => {
+            toast({
+              title: "Rewound!",
+              description: "Your last swipe has been undone.",
+            });
+          });
+      } else {
+        toast({
+          title: "Rewound!",
+          description: "Your last swipe has been undone.",
+        });
+      }
     }
   };
 
@@ -226,9 +265,13 @@ const Discovery = () => {
   const handleSwipe = (direction: 'left' | 'right') => {
     const isLike = direction === 'right';
     
-    // Handle like if user swiped right
-    if (isLike && currentPet) {
-      handleLike(currentPet.id);
+    // Handle like/dislike
+    if (currentPet) {
+      if (isLike) {
+        handleLike(currentPet.id);
+      } else {
+        handleDislike(currentPet.id);
+      }
     }
     
     api.start({
@@ -375,7 +418,17 @@ const Discovery = () => {
           </animated.div>
 
           {/* Action Buttons */}
-          <div className="flex justify-center gap-6 mt-8">
+          <div className="flex justify-center gap-4 mt-8">
+            <Button
+              onClick={handleRewind}
+              disabled={!canUndo}
+              size="lg"
+              variant="outline"
+              className="rounded-full w-16 h-16 border-accent text-accent hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RotateCcw className="w-6 h-6" />
+            </Button>
+            
             <Button
               onClick={() => handleSwipe('left')}
               size="lg"
@@ -383,6 +436,15 @@ const Discovery = () => {
               className="rounded-full w-16 h-16 border-destructive text-destructive hover:bg-destructive hover:text-white"
             >
               <X className="w-6 h-6" />
+            </Button>
+            
+            <Button
+              size="lg"
+              variant="outline"
+              className="rounded-full w-16 h-16 border-neon-yellow text-neon-yellow hover:bg-neon-yellow hover:text-black"
+              title="Super Lick - Coming Soon!"
+            >
+              <div className="text-2xl">👅</div>
             </Button>
             
             <Button
@@ -398,16 +460,28 @@ const Discovery = () => {
           <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border">
             <div className="flex justify-around py-2">
               <Link to="/discovery" className="flex-1">
-                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1">
+                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1 text-accent">
                   <Heart className="w-5 h-5" />
                   <span className="text-xs">Discover</span>
                 </Button>
               </Link>
               
               <Link to="/matches" className="flex-1">
-                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1">
+                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1 relative">
                   <div className="w-5 h-5 flex items-center justify-center">💬</div>
                   <span className="text-xs">Matches</span>
+                  {unreadCount > 0 && (
+                    <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 bg-destructive text-destructive-foreground text-xs flex items-center justify-center rounded-full">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </Badge>
+                  )}
+                </Button>
+              </Link>
+              
+              <Link to="/who-liked-you" className="flex-1">
+                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1">
+                  <div className="w-5 h-5 flex items-center justify-center">👀</div>
+                  <span className="text-xs">Likes</span>
                 </Button>
               </Link>
               

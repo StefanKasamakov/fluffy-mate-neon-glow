@@ -17,19 +17,14 @@ const Premium = () => {
       description: "View all pets that have already liked your pet"
     },
     {
-      icon: <Star className="w-5 h-5" />,
-      title: "Super Like",
-      description: "Stand out with 5 Super Likes per day"
+      icon: <div className="w-5 h-5 flex items-center justify-center text-xs">👅</div>,
+      title: "Super Lick",
+      description: "Stand out with 5 Super Licks per day"
     },
     {
       icon: <div className="w-5 h-5 flex items-center justify-center text-xs">🔄</div>,
       title: "Rewind",
       description: "Undo your last swipe if you changed your mind"
-    },
-    {
-      icon: <div className="w-5 h-5 flex items-center justify-center text-xs">📍</div>,
-      title: "Passport",
-      description: "Connect with pets around the world"
     },
     {
       icon: <div className="w-5 h-5 flex items-center justify-center text-xs">⚡</div>,
@@ -44,21 +39,21 @@ const Premium = () => {
       price: "$9.99",
       period: "per month",
       popular: false,
-      features: ["Unlimited Swipes", "See Who Liked You", "1 Super Like per day"]
+      features: ["Unlimited Swipes", "See Who Liked You", "1 Super Lick per day"]
     },
     {
       name: "FluffyMatch Gold",
       price: "$19.99",
       period: "per month",
       popular: true,
-      features: ["Everything in Plus", "5 Super Likes per day", "1 Boost per month", "Rewind"]
+      features: ["Everything in Plus", "5 Super Licks per day", "1 Boost per month", "Rewind"]
     },
     {
       name: "FluffyMatch Platinum",
       price: "$29.99",
       period: "per month",
       popular: false,
-      features: ["Everything in Gold", "Passport", "Priority Likes", "Message Before Matching"]
+      features: ["Everything in Gold", "Priority Likes", "Message Before Matching", "Read Receipts"]
     }
   ];
 
