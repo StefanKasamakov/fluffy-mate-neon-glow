@@ -1,46 +1,113 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Heart, MessageCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const Matches = () => {
-  const [matches] = useState([
-    {
-      id: 1,
-      petName: "Luna",
-      ownerName: "Sarah M.",
-      breed: "Golden Retriever",
-      photo: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=200&h=200&fit=crop",
-      matchedAt: "2 hours ago",
-      lastMessage: "Hi! Luna looks amazing, would love to arrange a meetup!",
-      unread: true,
-      verified: true
-    },
-    {
-      id: 2,
-      petName: "Charlie",
-      ownerName: "John D.",
-      breed: "Labrador",
-      photo: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=200&h=200&fit=crop",
-      matchedAt: "1 day ago",
-      lastMessage: "Thank you for the match! When would be a good time to meet?",
-      unread: false,
-      verified: true
-    },
-    {
-      id: 3,
-      petName: "Mia",
-      ownerName: "Lisa K.",
-      breed: "Persian Cat",
-      photo: "https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?w=200&h=200&fit=crop",
-      matchedAt: "3 days ago",
-      lastMessage: "Mia is so beautiful! Would love to discuss breeding.",
-      unread: false,
-      verified: false
+  const [matches, setMatches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  const loadMatches = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('matches')
+        .select(`
+          id,
+          created_at,
+          pet1:pets!matches_pet1_id_fkey(
+            id,
+            pet_name,
+            owner_name,
+            breed,
+            verified,
+            user_id,
+            pet_photos(photo_url)
+          ),
+          pet2:pets!matches_pet2_id_fkey(
+            id,
+            pet_name,
+            owner_name,
+            breed,
+            verified,
+            user_id,
+            pet_photos(photo_url)
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedMatches = await Promise.all(data?.map(async (match) => {
+        // Determine which pet is the other user's pet
+        const otherPet = match.pet1.user_id === user.id ? match.pet2 : match.pet1;
+        
+        // Get the most recent message for this match
+        const { data: messages } = await supabase
+          .from('messages')
+          .select('message_text, created_at')
+          .eq('match_id', match.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        const lastMessage = messages?.[0];
+        const matchedAt = new Date(match.created_at);
+        const now = new Date();
+        const diffTime = Math.abs(now.getTime() - matchedAt.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        let timeAgo = '';
+        if (diffDays === 1) {
+          timeAgo = 'Today';
+        } else if (diffDays === 2) {
+          timeAgo = 'Yesterday';
+        } else if (diffDays <= 7) {
+          timeAgo = `${diffDays - 1} days ago`;
+        } else {
+          timeAgo = matchedAt.toLocaleDateString();
+        }
+
+        return {
+          id: match.id,
+          petName: otherPet.pet_name,
+          ownerName: otherPet.owner_name,
+          breed: otherPet.breed || 'Mixed Breed',
+          photo: otherPet.pet_photos?.[0]?.photo_url || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=200&h=200&fit=crop',
+          matchedAt: timeAgo,
+          lastMessage: lastMessage?.message_text || 'Say hello!',
+          unread: !lastMessage, // If no messages, consider it unread
+          verified: otherPet.verified || false
+        };
+      }) || []);
+
+      setMatches(formattedMatches);
+    } catch (error) {
+      console.error('Error loading matches:', error);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  useEffect(() => {
+    loadMatches();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading matches...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

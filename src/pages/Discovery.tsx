@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSpring, animated } from "react-spring";
 import { useDrag } from "@use-gesture/react";
 import FilterModal, { FilterSettings } from "@/components/FilterModal";
+import { MatchAnimation } from "@/components/MatchAnimation";
 import { supabase } from "@/integrations/supabase/client";
 
 const Discovery = () => {
@@ -15,6 +16,9 @@ const Discovery = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [pets, setPets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userPet, setUserPet] = useState<any>(null);
+  const [showMatchAnimation, setShowMatchAnimation] = useState(false);
+  const [currentMatch, setCurrentMatch] = useState<any>(null);
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const [filters, setFilters] = useState<FilterSettings>({
@@ -30,6 +34,7 @@ const Discovery = () => {
   // Load pets from database
   useEffect(() => {
     loadPets();
+    loadUserPet();
   }, [user]);
 
   // Calculate distance between two coordinates using Haversine formula
@@ -42,6 +47,85 @@ const Discovery = () => {
       Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
+  };
+
+  const loadUserPet = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('pets')
+        .select(`
+          *,
+          pet_photos(*)
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) throw error;
+
+      setUserPet({
+        id: data.id,
+        name: data.pet_name,
+        photo: data.pet_photos?.[0]?.photo_url || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=600&fit=crop'
+      });
+    } catch (error) {
+      console.error('Error loading user pet:', error);
+    }
+  };
+
+  const handleLike = async (likedPetId: string) => {
+    if (!user || !userPet) return;
+
+    try {
+      // Create a like
+      const { error } = await supabase
+        .from('likes')
+        .insert({
+          liker_pet_id: userPet.id,
+          liked_pet_id: likedPetId
+        });
+
+      if (error) throw error;
+
+      // Check if a match was created
+      await checkForMatch(userPet.id, likedPetId);
+    } catch (error) {
+      console.error('Error creating like:', error);
+    }
+  };
+
+  const checkForMatch = async (userPetId: string, likedPetId: string) => {
+    try {
+      const { data: matches, error } = await supabase
+        .from('matches')
+        .select(`
+          *,
+          pet1:pets!matches_pet1_id_fkey(pet_name, pet_photos(*)),
+          pet2:pets!matches_pet2_id_fkey(pet_name, pet_photos(*))
+        `)
+        .or(`and(pet1_id.eq.${userPetId},pet2_id.eq.${likedPetId}),and(pet1_id.eq.${likedPetId},pet2_id.eq.${userPetId})`);
+
+      if (error) throw error;
+
+      if (matches && matches.length > 0) {
+        const match = matches[0];
+        const matchedPet = match.pet1_id === userPetId ? match.pet2 : match.pet1;
+        
+        setCurrentMatch({
+          id: match.id,
+          matchedPet: {
+            name: matchedPet.pet_name,
+            photo: matchedPet.pet_photos?.[0]?.photo_url || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=600&fit=crop'
+          }
+        });
+        setShowMatchAnimation(true);
+      }
+    } catch (error) {
+      console.error('Error checking for match:', error);
+    }
   };
 
   const loadPets = async () => {
@@ -141,6 +225,11 @@ const Discovery = () => {
 
   const handleSwipe = (direction: 'left' | 'right') => {
     const isLike = direction === 'right';
+    
+    // Handle like if user swiped right
+    if (isLike && currentPet) {
+      handleLike(currentPet.id);
+    }
     
     api.start({
       x: isLike ? 300 : -300,
@@ -347,6 +436,17 @@ const Discovery = () => {
         onApply={handleApplyFilters}
         currentFilters={filters}
       />
+
+      {/* Match Animation */}
+      {showMatchAnimation && currentMatch && userPet && (
+        <MatchAnimation
+          isVisible={showMatchAnimation}
+          userPet={userPet}
+          matchedPet={currentMatch.matchedPet}
+          matchId={currentMatch.id}
+          onKeepSwiping={() => setShowMatchAnimation(false)}
+        />
+      )}
     </div>
   );
 };

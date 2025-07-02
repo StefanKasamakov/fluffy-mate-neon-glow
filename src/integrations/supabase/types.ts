@@ -9,6 +9,110 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      likes: {
+        Row: {
+          created_at: string
+          id: string
+          liked_pet_id: string
+          liker_pet_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          liked_pet_id: string
+          liker_pet_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          liked_pet_id?: string
+          liker_pet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "likes_liked_pet_id_fkey"
+            columns: ["liked_pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "likes_liker_pet_id_fkey"
+            columns: ["liker_pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matches: {
+        Row: {
+          created_at: string
+          id: string
+          pet1_id: string
+          pet2_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pet1_id: string
+          pet2_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pet1_id?: string
+          pet2_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_pet1_id_fkey"
+            columns: ["pet1_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_pet2_id_fkey"
+            columns: ["pet2_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          created_at: string
+          id: string
+          match_id: string
+          message_text: string
+          sender_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          match_id: string
+          message_text: string
+          sender_user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          match_id?: string
+          message_text?: string
+          sender_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pet_certificates: {
         Row: {
           certificate_type: string | null

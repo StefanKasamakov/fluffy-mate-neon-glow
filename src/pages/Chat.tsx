@@ -5,71 +5,142 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Send, Phone, Video, MoreVertical, Heart } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const Chat = () => {
   const { matchId } = useParams();
   const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [matchData, setMatchData] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  const [messages] = useState([
-    {
-      id: 1,
-      text: "Hi! Luna looks amazing, would love to arrange a meetup!",
-      sender: "them",
-      timestamp: "2:30 PM",
-      isOwner: false
-    },
-    {
-      id: 2,
-      text: "Thank you! Your pet is beautiful too. I'd love to meet up and see if they get along.",
-      sender: "me",
-      timestamp: "2:32 PM",
-      isOwner: true
-    },
-    {
-      id: 3,
-      text: "Perfect! Luna is very social and loves meeting new friends. Do you have any health certificates?",
-      sender: "them",
-      timestamp: "2:35 PM",
-      isOwner: false
-    },
-    {
-      id: 4,
-      text: "Yes, all vaccinations are up to date and I have the certificates. Would next weekend work?",
-      sender: "me",
-      timestamp: "2:37 PM",
-      isOwner: true
-    },
-    {
-      id: 5,
-      text: "That sounds perfect! Should we meet at Central Park?",
-      sender: "them",
-      timestamp: "2:40 PM",
-      isOwner: false
-    }
-  ]);
+  const { user } = useAuth();
 
-  const match = {
-    id: 1,
-    petName: "Luna",
-    ownerName: "Sarah M.",
-    breed: "Golden Retriever",
-    photo: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=100&h=100&fit=crop",
-    verified: true,
-    online: true
+  const loadMessages = async () => {
+    if (!matchId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('match_id', matchId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      const formattedMessages = data?.map(msg => ({
+        id: msg.id,
+        text: msg.message_text,
+        isOwner: msg.sender_user_id === user?.id,
+        timestamp: new Date(msg.created_at).toLocaleTimeString([], { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        })
+      })) || [];
+
+      setMessages(formattedMessages);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
   };
 
-  const sendMessage = () => {
-    if (message.trim()) {
-      // In real app, this would send to backend
-      console.log("Sending message:", message);
+  const loadMatchData = async () => {
+    if (!matchId || !user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('matches')
+        .select(`
+          *,
+          pet1:pets!matches_pet1_id_fkey(
+            pet_name,
+            owner_name,
+            verified,
+            user_id,
+            pet_photos(photo_url)
+          ),
+          pet2:pets!matches_pet2_id_fkey(
+            pet_name,
+            owner_name,
+            verified,
+            user_id,
+            pet_photos(photo_url)
+          )
+        `)
+        .eq('id', matchId)
+        .single();
+
+      if (error) throw error;
+
+      // Determine which pet is the other user's pet
+      const otherPet = data.pet1.user_id === user.id ? data.pet2 : data.pet1;
+      
+      setMatchData({
+        id: data.id,
+        petName: otherPet.pet_name,
+        ownerName: otherPet.owner_name,
+        photo: otherPet.pet_photos?.[0]?.photo_url || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=100&h=100&fit=crop',
+        verified: otherPet.verified || false,
+        online: Math.random() > 0.5 // Mock online status
+      });
+    } catch (error) {
+      console.error('Error loading match data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!message.trim() || !matchId || !user) return;
+
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .insert({
+          match_id: matchId,
+          sender_user_id: user.id,
+          message_text: message.trim()
+        });
+
+      if (error) throw error;
+
       setMessage("");
+      await loadMessages(); // Reload messages to show the new one
+    } catch (error) {
+      console.error('Error sending message:', error);
     }
   };
 
   useEffect(() => {
+    loadMatchData();
+    loadMessages();
+  }, [matchId, user]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading chat...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!matchData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Match not found</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -85,23 +156,23 @@ const Chat = () => {
           <div className="flex items-center gap-3">
             <div className="relative">
               <img
-                src={match.photo}
-                alt={match.petName}
+                src={matchData.photo}
+                alt={matchData.petName}
                 className="w-10 h-10 object-cover rounded-full"
               />
-              {match.verified && (
+              {matchData.verified && (
                 <Badge className="absolute -top-1 -right-1 w-4 h-4 p-0 bg-neon-green text-black text-xs flex items-center justify-center">
                   ✓
                 </Badge>
               )}
-              {match.online && (
+              {matchData.online && (
                 <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-neon-green rounded-full border-2 border-card" />
               )}
             </div>
             
             <div>
-              <p className="font-medium">{match.petName}</p>
-              <p className="text-xs text-muted-foreground">{match.ownerName}</p>
+              <p className="font-medium">{matchData.petName}</p>
+              <p className="text-xs text-muted-foreground">{matchData.ownerName}</p>
             </div>
           </div>
         </div>
@@ -123,7 +194,7 @@ const Chat = () => {
       <div className="p-4 bg-gradient-accent/10 border-b border-border">
         <div className="flex items-center justify-center gap-2">
           <Heart className="w-4 h-4 text-neon-pink" />
-          <span className="text-sm">You and {match.petName} liked each other!</span>
+          <span className="text-sm">You and {matchData.petName} liked each other!</span>
           <Heart className="w-4 h-4 text-neon-pink" />
         </div>
       </div>
