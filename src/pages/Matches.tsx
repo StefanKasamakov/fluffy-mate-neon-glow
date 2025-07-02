@@ -3,14 +3,18 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Heart, MessageCircle } from "lucide-react";
+import { ArrowLeft, Heart, MessageCircle, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import SettingsDropdown from "@/components/SettingsDropdown";
+import ProfileView from "@/components/ProfileView";
 
 const Matches = () => {
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [profileViewOpen, setProfileViewOpen] = useState(false);
+  const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
   const { user } = useAuth();
   const { unreadCount } = useUnreadMessages();
 
@@ -82,6 +86,7 @@ const Matches = () => {
 
         return {
           id: match.id,
+          petId: otherPet.id,
           petName: otherPet.pet_name,
           ownerName: otherPet.owner_name,
           breed: otherPet.breed || 'Mixed Breed',
@@ -126,7 +131,7 @@ const Matches = () => {
           </Button>
         </Link>
         <h1 className="text-lg font-semibold">Matches</h1>
-        <div className="w-8" /> {/* Spacer */}
+        <SettingsDropdown />
       </div>
 
       {/* New Matches Section */}
@@ -138,24 +143,34 @@ const Matches = () => {
         
         <div className="grid grid-cols-3 gap-4 mb-6">
           {matches.slice(0, 3).map((match) => (
-            <Link key={match.id} to={`/chat/${match.id}`}>
-              <div className="relative">
-                <img
-                  src={match.photo}
-                  alt={match.petName}
-                  className="w-full aspect-square object-cover rounded-lg border-2 border-neon-pink/30"
-                />
-                {match.verified && (
-                  <Badge className="absolute -top-1 -right-1 w-6 h-6 p-0 bg-neon-green text-black text-xs flex items-center justify-center">
-                    ✓
-                  </Badge>
-                )}
-                <div className="mt-2 text-center">
-                  <p className="text-sm font-medium">{match.petName}</p>
-                  <p className="text-xs text-muted-foreground">{match.matchedAt}</p>
-                </div>
+            <div key={match.id} className="relative">
+              <img
+                src={match.photo}
+                alt={match.petName}
+                className="w-full aspect-square object-cover rounded-lg border-2 border-neon-pink/30 cursor-pointer"
+                onClick={() => {
+                  setSelectedPetId(match.petId);
+                  setProfileViewOpen(true);
+                }}
+              />
+              {match.verified && (
+                <Badge className="absolute -top-1 -right-1 w-6 h-6 p-0 bg-neon-green text-black text-xs flex items-center justify-center">
+                  ✓
+                </Badge>
+              )}
+              <div className="mt-2 text-center">
+                <p 
+                  className="text-sm font-medium cursor-pointer hover:text-accent"
+                  onClick={() => {
+                    setSelectedPetId(match.petId);
+                    setProfileViewOpen(true);
+                  }}
+                >
+                  {match.petName}
+                </p>
+                <p className="text-xs text-muted-foreground">{match.matchedAt}</p>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       </div>
@@ -190,7 +205,16 @@ const Matches = () => {
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <p className="font-medium">{match.petName}</p>
+                      <p 
+                        className="font-medium cursor-pointer hover:text-accent"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setSelectedPetId(match.petId);
+                          setProfileViewOpen(true);
+                        }}
+                      >
+                        {match.petName}
+                      </p>
                       <span className="text-xs text-muted-foreground">•</span>
                       <p className="text-sm text-muted-foreground">{match.ownerName}</p>
                     </div>
@@ -229,6 +253,13 @@ const Matches = () => {
           </div>
         </div>
       )}
+
+      <ProfileView
+        isOpen={profileViewOpen}
+        onClose={() => setProfileViewOpen(false)}
+        petId={selectedPetId}
+        showLikeButton={false}
+      />
 
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border">

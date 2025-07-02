@@ -8,6 +8,7 @@ import { useSpring, animated } from "react-spring";
 import { useDrag } from "@use-gesture/react";
 import FilterModal, { FilterSettings } from "@/components/FilterModal";
 import { MatchAnimation } from "@/components/MatchAnimation";
+import ProfileView from "@/components/ProfileView";
 import { supabase } from "@/integrations/supabase/client";
 import { useSwipeHistory } from "@/hooks/useSwipeHistory";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
@@ -23,6 +24,8 @@ const Discovery = () => {
   const [userPet, setUserPet] = useState<any>(null);
   const [showMatchAnimation, setShowMatchAnimation] = useState(false);
   const [currentMatch, setCurrentMatch] = useState<any>(null);
+  const [profileViewOpen, setProfileViewOpen] = useState(false);
+  const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -377,7 +380,13 @@ const Discovery = () => {
             className="relative bg-gradient-card border border-border rounded-2xl overflow-hidden shadow-card touch-none select-none cursor-grab active:cursor-grabbing"
           >
             {/* Image */}
-            <div className="relative h-96">
+            <div 
+              className="relative h-96 cursor-pointer" 
+              onClick={() => {
+                setSelectedPetId(currentPet.id);
+                setProfileViewOpen(true);
+              }}
+            >
               <img
                 src={currentPet.photo}
                 alt={currentPet.name}
@@ -508,6 +517,15 @@ const Discovery = () => {
         onClose={() => setIsFilterOpen(false)}
         onApply={handleApplyFilters}
         currentFilters={filters}
+      />
+
+      {/* Profile View */}
+      <ProfileView
+        isOpen={profileViewOpen}
+        onClose={() => setProfileViewOpen(false)}
+        petId={selectedPetId}
+        onLike={handleLike}
+        showLikeButton={true}
       />
 
       {/* Match Animation */}

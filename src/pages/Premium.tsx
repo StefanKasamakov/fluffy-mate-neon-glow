@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Check, Star, Heart, Eye } from "lucide-react";
+import SettingsDropdown from "@/components/SettingsDropdown";
 
 const Premium = () => {
   const features = [
@@ -67,7 +68,7 @@ const Premium = () => {
           </Button>
         </Link>
         <h1 className="text-lg font-semibold">FluffyMatch Premium</h1>
-        <div className="w-8" />
+        <SettingsDropdown />
       </div>
 
       <div className="p-4 space-y-6">
