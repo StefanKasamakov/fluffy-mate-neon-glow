@@ -1,11 +1,107 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const Onboarding = () => {
   const [isLogin, setIsLogin] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { signUp, signIn, signInWithGoogle, signInWithApple, user } = useAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      navigate("/discovery");
+    }
+  }, [user, navigate]);
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (!email || !password) {
+        toast({
+          title: "Error",
+          description: "Please fill in all fields",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!isLogin && password !== confirmPassword) {
+        toast({
+          title: "Error",
+          description: "Passwords do not match",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = isLogin 
+        ? await signIn(email, password)
+        : await signUp(email, password);
+
+      if (error) {
+        toast({
+          title: "Authentication Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success!",
+          description: isLogin ? "Welcome back!" : "Account created successfully!",
+        });
+        navigate("/discovery");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    setLoading(true);
+    const { error } = await signInWithGoogle();
+    
+    if (error) {
+      toast({
+        title: "Google Sign-In Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
+  };
+
+  const handleAppleAuth = async () => {
+    setLoading(true);
+    const { error } = await signInWithApple();
+    
+    if (error) {
+      toast({
+        title: "Apple Sign-In Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -34,7 +130,12 @@ const Onboarding = () => {
 
             {/* Social Login Buttons */}
             <div className="space-y-3">
-              <Button className="w-full bg-secondary hover:bg-secondary/80" variant="secondary">
+              <Button 
+                onClick={handleGoogleAuth}
+                disabled={loading}
+                className="w-full bg-secondary hover:bg-secondary/80" 
+                variant="secondary"
+              >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                   <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -44,7 +145,12 @@ const Onboarding = () => {
                 Continue with Google
               </Button>
               
-              <Button className="w-full bg-secondary hover:bg-secondary/80" variant="secondary">
+              <Button 
+                onClick={handleAppleAuth}
+                disabled={loading}
+                className="w-full bg-secondary hover:bg-secondary/80" 
+                variant="secondary"
+              >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.024-.105-.949-.199-2.403.041-3.439.219-.937 1.404-5.965 1.404-5.965s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.083.402-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.402.162-1.499-.69-2.436-2.888-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.357-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24.009 12.017 24.009c6.624 0 11.99-5.367 11.99-11.988C24.007 5.367 18.641.001 12.017.001z"/>
                 </svg>
@@ -62,19 +168,25 @@ const Onboarding = () => {
             </div>
 
             {/* Email Form */}
-            <form className="space-y-4">
+            <form onSubmit={handleEmailAuth} className="space-y-4">
               <div>
                 <Input
                   type="email"
                   placeholder="Email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="bg-secondary border-border"
+                  required
                 />
               </div>
               <div>
                 <Input
                   type="password"
                   placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="bg-secondary border-border"
+                  required
                 />
               </div>
               {!isLogin && (
@@ -82,16 +194,21 @@ const Onboarding = () => {
                   <Input
                     type="password"
                     placeholder="Confirm password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     className="bg-secondary border-border"
+                    required
                   />
                 </div>
               )}
               
-              <Link to="/discovery">
-                <Button className="w-full bg-gradient-primary hover:opacity-90 shadow-button">
-                  {isLogin ? "Sign In" : "Create Account"}
-                </Button>
-              </Link>
+              <Button 
+                type="submit" 
+                disabled={loading}
+                className="w-full bg-gradient-primary hover:opacity-90 shadow-button"
+              >
+                {loading ? "Loading..." : isLogin ? "Sign In" : "Create Account"}
+              </Button>
             </form>
 
             {/* Toggle between login/signup */}
