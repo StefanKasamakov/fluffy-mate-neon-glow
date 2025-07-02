@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, X, MapPin, Settings, User, SlidersHorizontal } from "lucide-react";
+import { Heart, X, MapPin, Settings, User, SlidersHorizontal, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { useSpring, animated } from "react-spring";
 import { useDrag } from "@use-gesture/react";
 import FilterModal, { FilterSettings } from "@/components/FilterModal";
@@ -11,6 +12,8 @@ const Discovery = () => {
   const [currentPetIndex, setCurrentPetIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<FilterSettings>({
     breed: "Any Breed",
     distance: 25,
@@ -84,7 +87,7 @@ const Discovery = () => {
 
   const bind = useDrag(
     ({ active, movement: [mx], direction: [xDir], velocity: [vx] }) => {
-      const trigger = vx > 0.2;
+      const trigger = vx > 0.3 || Math.abs(mx) > 150;
       const dir = xDir < 0 ? -1 : 1;
       
       if (!active && trigger) {
@@ -92,22 +95,27 @@ const Discovery = () => {
       } else {
         api.start({
           x: active ? mx : 0,
-          rotate: active ? mx / 10 : 0,
-          scale: active ? 1.05 : 1,
+          rotate: active ? mx / 8 : 0,
+          scale: active ? 1.02 : 1,
           immediate: (name) => active && name === 'x'
         });
       }
     },
     { 
       axis: 'x',
-      bounds: { left: -100, right: 100, top: 0, bottom: 0 },
-      rubberband: true 
+      bounds: { left: -200, right: 200, top: 0, bottom: 0 },
+      rubberband: 0.15
     }
   );
 
   const handleApplyFilters = (newFilters: FilterSettings) => {
     setFilters(newFilters);
     // In real app, this would trigger a new API call with filters
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/onboarding');
   };
 
   if (!currentPet) {
@@ -137,11 +145,9 @@ const Discovery = () => {
           <Button variant="ghost" size="sm" onClick={() => setIsFilterOpen(true)}>
             <SlidersHorizontal className="w-5 h-5" />
           </Button>
-          <Link to="/settings">
-            <Button variant="ghost" size="sm">
-              <Settings className="w-5 h-5" />
-            </Button>
-          </Link>
+          <Button variant="ghost" size="sm" onClick={handleLogout}>
+            <LogOut className="w-5 h-5" />
+          </Button>
         </div>
       </div>
 

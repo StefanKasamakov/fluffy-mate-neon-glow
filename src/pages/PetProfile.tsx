@@ -74,6 +74,8 @@ const PetProfile = () => {
           <div className="space-y-4">
             <Input placeholder="Pet's name" className="bg-secondary border-border" />
             
+            <Input placeholder="Owner's name" className="bg-secondary border-border" />
+            
             <Select>
               <SelectTrigger className="bg-secondary border-border">
                 <SelectValue placeholder="Breed" />
