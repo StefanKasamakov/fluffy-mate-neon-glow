@@ -55,6 +55,19 @@ const Settings = () => {
           </div>
         </Card>
 
+        {/* Location Settings */}
+        <Card className="p-4 bg-gradient-card border-border">
+          <h3 className="text-lg font-semibold mb-4">Location</h3>
+          <div className="space-y-3">
+            <Button variant="outline" className="w-full justify-start border-border">
+              Update Location
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Update your location to find matches nearby
+            </p>
+          </div>
+        </Card>
+
         {/* Notification Settings */}
         <Card className="p-4 bg-gradient-card border-border">
           <h3 className="text-lg font-semibold mb-4">Notifications</h3>

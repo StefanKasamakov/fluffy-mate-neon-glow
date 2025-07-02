@@ -116,7 +116,7 @@ const FilterModal = ({ isOpen, onClose, onApply, currentFilters }: FilterModalPr
             max={15}
             min={1}
             step={1}
-            className="w-full"
+            className="w-full transition-all duration-200 ease-in-out"
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>1 year</span>

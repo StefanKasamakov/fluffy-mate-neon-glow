@@ -6,7 +6,10 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Camera, Plus, X, MapPin, Locate, Settings, LogOut } from "lucide-react";
+import { ArrowLeft, Camera, Plus, X, MapPin, Locate, Settings, LogOut, Moon, Sun } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useTheme } from "@/hooks/useTheme";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -38,6 +41,7 @@ const PetProfile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   // Load existing pet profile if it exists
   useEffect(() => {
@@ -433,11 +437,25 @@ const PetProfile = () => {
           </Button>
         </Link>
         <h1 className="text-lg font-semibold">Pet Profile</h1>
-        <Link to="/settings">
-          <Button variant="ghost" size="sm">
-            <Settings className="w-5 h-5" />
-          </Button>
-        </Link>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm">
+              <Settings className="w-5 h-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-popover border-border">
+            <DropdownMenuItem>
+              <MapPin className="w-4 h-4 mr-2" />
+              <span>Update Location</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            >
+              {theme === 'light' ? <Moon className="w-4 h-4 mr-2" /> : <Sun className="w-4 h-4 mr-2" />}
+              <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className="p-4 space-y-6">

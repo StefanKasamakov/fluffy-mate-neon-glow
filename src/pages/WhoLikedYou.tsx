@@ -3,102 +3,91 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Heart } from "lucide-react";
+import { ArrowLeft, Heart, Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 const WhoLikedYou = () => {
-  const [likedByPets, setLikedByPets] = useState<any[]>([]);
+  const [likes, setLikes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasPremium, setHasPremium] = useState(false);
   const { user } = useAuth();
 
-  const loadLikedByPets = async () => {
+  const loadLikes = async () => {
     if (!user) return;
     
     try {
-      // Get current user's pet
+      // Get all pets that belong to the current user
       const { data: userPets } = await supabase
         .from('pets')
         .select('id')
-        .eq('user_id', user.id)
-        .limit(1);
+        .eq('user_id', user.id);
 
-      if (!userPets?.[0]) return;
+      if (!userPets?.length) return;
 
-      const userPetId = userPets[0].id;
+      const petIds = userPets.map(pet => pet.id);
 
-      // Find pets that have liked the current user's pet
+      // Get all likes where user's pets were liked
       const { data, error } = await supabase
         .from('likes')
         .select(`
           id,
           created_at,
           liker_pet:pets!likes_liker_pet_id_fkey(
-            id,
             pet_name,
             owner_name,
             breed,
-            age,
             verified,
             pet_photos(photo_url)
           )
         `)
-        .eq('liked_pet_id', userPetId)
+        .in('liked_pet_id', petIds)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const formattedPets = data?.map((like) => ({
-        id: like.liker_pet.id,
+      const formattedLikes = data?.map((like) => ({
+        id: like.id,
         petName: like.liker_pet.pet_name,
         ownerName: like.liker_pet.owner_name,
         breed: like.liker_pet.breed || 'Mixed Breed',
-        age: like.liker_pet.age,
         photo: like.liker_pet.pet_photos?.[0]?.photo_url || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=200&h=200&fit=crop',
         verified: like.liker_pet.verified || false,
         likedAt: new Date(like.created_at).toLocaleDateString()
       })) || [];
 
-      setLikedByPets(formattedPets);
+      setLikes(formattedLikes);
     } catch (error) {
-      console.error('Error loading liked pets:', error);
+      console.error('Error loading likes:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLikeBack = async (petId: string) => {
+  const checkPremiumStatus = async () => {
     if (!user) return;
-
+    
     try {
-      // Get current user's pet
-      const { data: userPets } = await supabase
-        .from('pets')
-        .select('id')
+      const { data } = await supabase
+        .from('user_subscriptions')
+        .select('status, subscription_tier:subscription_tiers(features)')
         .eq('user_id', user.id)
-        .limit(1);
+        .eq('status', 'active')
+        .single();
 
-      if (!userPets?.[0]) return;
-
-      const userPetId = userPets[0].id;
-
-      // Create a like back
-      await supabase
-        .from('likes')
-        .insert({
-          liker_pet_id: userPetId,
-          liked_pet_id: petId
-        });
-
-      // Remove from the list since they've been liked back
-      setLikedByPets(prev => prev.filter(pet => pet.id !== petId));
+      const features = data?.subscription_tier?.features as any;
+      if (features?.see_who_liked) {
+        setHasPremium(true);
+      }
     } catch (error) {
-      console.error('Error liking back:', error);
+      // User doesn't have premium subscription
+      setHasPremium(false);
     }
   };
 
   useEffect(() => {
-    loadLikedByPets();
+    loadLikes();
+    checkPremiumStatus();
   }, [user]);
 
   if (loading) {
@@ -122,17 +111,28 @@ const WhoLikedYou = () => {
           </Button>
         </Link>
         <h1 className="text-lg font-semibold">Who Liked You</h1>
-        <div className="w-8" />
+        <div className="w-8" /> {/* Spacer */}
       </div>
 
+      {/* Premium Banner */}
+      {!hasPremium && likes.length > 0 && (
+        <div className="p-4 bg-gradient-accent/10 border-b border-border">
+          <div className="flex items-center justify-center gap-2">
+            <Crown className="w-5 h-5 text-neon-yellow" />
+            <span className="text-sm font-medium">Upgrade to Premium to see who liked you!</span>
+          </div>
+        </div>
+      )}
+
+      {/* Likes Grid */}
       <div className="p-4">
-        {likedByPets.length === 0 ? (
+        {likes.length === 0 ? (
           <div className="flex-1 flex items-center justify-center p-8">
             <div className="text-center">
               <Heart className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2">No likes yet</h3>
               <p className="text-muted-foreground mb-4">
-                When pets like your pet, they'll appear here!
+                Keep your profile active to get more likes!
               </p>
               <Link to="/discovery">
                 <Button className="bg-gradient-primary hover:opacity-90">
@@ -142,54 +142,93 @@ const WhoLikedYou = () => {
             </div>
           </div>
         ) : (
-          <>
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                <Heart className="w-5 h-5 text-neon-pink" />
-                {likedByPets.length} pets liked you!
-              </h2>
-              <p className="text-muted-foreground text-sm">
-                Like them back to create a match
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              {likedByPets.map((pet) => (
-                <Card key={pet.id} className="p-3 bg-gradient-card border-border">
+          <div className="grid grid-cols-2 gap-4">
+            {likes.map((like) => (
+              <Card 
+                key={like.id} 
+                className={`p-4 bg-gradient-card border-border ${
+                  !hasPremium ? 'relative overflow-hidden' : ''
+                }`}
+              >
+                <div className="text-center">
                   <div className="relative mb-3">
                     <img
-                      src={pet.photo}
-                      alt={pet.petName}
-                      className="w-full aspect-square object-cover rounded-lg"
+                      src={like.photo}
+                      alt={hasPremium ? like.petName : "Premium required"}
+                      className={`w-20 h-20 object-cover rounded-full mx-auto ${
+                        !hasPremium ? 'blur-md' : ''
+                      }`}
                     />
-                    {pet.verified && (
-                      <Badge className="absolute top-2 right-2 w-6 h-6 p-0 bg-neon-green text-black text-xs flex items-center justify-center">
+                    {like.verified && hasPremium && (
+                      <Badge className="absolute -top-1 -right-1 w-6 h-6 p-0 bg-neon-green text-black text-xs flex items-center justify-center">
                         ✓
                       </Badge>
                     )}
+                    {!hasPremium && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Crown className="w-8 h-8 text-neon-yellow" />
+                      </div>
+                    )}
                   </div>
                   
-                  <div className="space-y-2">
-                    <div>
-                      <h3 className="font-semibold text-foreground">{pet.petName}</h3>
-                      <p className="text-sm text-muted-foreground">{pet.age ? `${pet.age} years old` : 'Age not specified'}</p>
-                      <p className="text-xs text-muted-foreground">{pet.breed}</p>
-                    </div>
-                    
-                    <Button
-                      onClick={() => handleLikeBack(pet.id)}
-                      className="w-full bg-gradient-primary hover:opacity-90 shadow-button"
-                      size="sm"
-                    >
-                      <Heart className="w-4 h-4 mr-2" />
-                      Like Back
-                    </Button>
+                  <h3 className={`font-medium mb-1 ${!hasPremium ? 'blur-sm' : ''}`}>
+                    {hasPremium ? like.petName : '••••••'}
+                  </h3>
+                  <p className={`text-sm text-muted-foreground mb-1 ${!hasPremium ? 'blur-sm' : ''}`}>
+                    {hasPremium ? like.breed : '••••••••'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {like.likedAt}
+                  </p>
+                </div>
+
+                {!hasPremium && (
+                  <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                    <Link to="/premium">
+                      <Button size="sm" className="bg-gradient-primary hover:opacity-90">
+                        <Crown className="w-4 h-4 mr-2" />
+                        Premium
+                      </Button>
+                    </Link>
                   </div>
-                </Card>
-              ))}
-            </div>
-          </>
+                )}
+              </Card>
+            ))}
+          </div>
         )}
+      </div>
+
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border">
+        <div className="flex justify-around py-2">
+          <Link to="/discovery" className="flex-1">
+            <Button variant="ghost" className="w-full h-16 flex flex-col gap-1">
+              <Heart className="w-5 h-5" />
+              <span className="text-xs">Discover</span>
+            </Button>
+          </Link>
+          
+          <Link to="/matches" className="flex-1">
+            <Button variant="ghost" className="w-full h-16 flex flex-col gap-1">
+              <div className="w-5 h-5 flex items-center justify-center">💬</div>
+              <span className="text-xs">Matches</span>
+            </Button>
+          </Link>
+          
+          <Link to="/premium" className="flex-1">
+            <Button variant="ghost" className="w-full h-16 flex flex-col gap-1">
+              <div className="w-5 h-5 flex items-center justify-center">⭐</div>
+              <span className="text-xs">Premium</span>
+            </Button>
+          </Link>
+          
+          <Link to="/profile" className="flex-1">
+            <Button variant="ghost" className="w-full h-16 flex flex-col gap-1">
+              <div className="w-5 h-5 flex items-center justify-center">👤</div>
+              <span className="text-xs">Profile</span>
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   );

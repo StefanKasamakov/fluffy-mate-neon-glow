@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Send, Phone, Video, MoreVertical, Heart } from "lucide-react";
+import { ArrowLeft, Send, MoreVertical, Heart } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -193,15 +194,29 @@ const Chat = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm">
-            <Phone className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="sm">
-            <Video className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="sm">
-            <MoreVertical className="w-4 h-4" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-popover border-border">
+              <DropdownMenuItem>
+                <span>Mute</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <span>Block</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => {
+                  // Handle report functionality
+                  console.log('Report user');
+                }}
+              >
+                <span className="text-destructive">Report</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -238,8 +253,8 @@ const Chat = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input */}
-      <div className="p-4 border-t border-border bg-card">
+      {/* Message Input - Fixed at bottom */}
+      <div className="sticky bottom-0 p-4 border-t border-border bg-card">
         <div className="flex items-center gap-3">
           <Input
             value={message}
