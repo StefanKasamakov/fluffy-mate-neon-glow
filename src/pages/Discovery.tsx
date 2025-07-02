@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,12 +7,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSpring, animated } from "react-spring";
 import { useDrag } from "@use-gesture/react";
 import FilterModal, { FilterSettings } from "@/components/FilterModal";
+import { supabase } from "@/integrations/supabase/client";
 
 const Discovery = () => {
   const [currentPetIndex, setCurrentPetIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const { signOut } = useAuth();
+  const [pets, setPets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const [filters, setFilters] = useState<FilterSettings>({
     breed: "Any Breed",
@@ -24,48 +27,72 @@ const Discovery = () => {
 
   const cardRef = useRef<HTMLDivElement>(null);
   
+  // Load pets from database
+  useEffect(() => {
+    loadPets();
+  }, [user]);
+
+  const loadPets = async () => {
+    try {
+      setLoading(true);
+      let query = supabase
+        .from('pets')
+        .select(`
+          *,
+          pet_photos(*)
+        `)
+        .order('created_at', { ascending: false });
+
+      // Exclude current user's pets
+      if (user) {
+        query = query.neq('user_id', user.id);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      // Transform data to match the component's expected format
+      const transformedPets = data?.map(pet => ({
+        id: pet.id,
+        name: pet.pet_name,
+        breed: pet.breed || 'Mixed Breed',
+        age: pet.age || 1,
+        location: pet.location || '2.5 miles away',
+        description: pet.description || 'No description available.',
+        photo: pet.pet_photos?.[0]?.photo_url || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=600&fit=crop',
+        verified: pet.verified || false,
+        owner: pet.owner_name || 'Anonymous'
+      })) || [];
+
+      setPets(transformedPets);
+    } catch (error) {
+      console.error('Error loading pets:', error);
+      // Fallback to demo data if database fails
+      setPets([
+        {
+          id: 1,
+          name: "Luna",
+          breed: "Golden Retriever",
+          age: 3,
+          location: "2.5 miles away",
+          description: "Friendly and energetic, loves playing fetch and swimming. Looking for a companion for puppies.",
+          photo: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=600&fit=crop",
+          verified: true,
+          owner: "Sarah M."
+        }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const [{ x, rotate, scale }, api] = useSpring(() => ({
     x: 0,
     rotate: 0,
     scale: 1,
     config: { mass: 1, tension: 300, friction: 40 }
   }));
-
-  const pets = [
-    {
-      id: 1,
-      name: "Luna",
-      breed: "Golden Retriever",
-      age: 3,
-      location: "2.5 miles away",
-      description: "Friendly and energetic, loves playing fetch and swimming. Looking for a companion for puppies.",
-      photo: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=600&fit=crop",
-      verified: true,
-      owner: "Sarah M."
-    },
-    {
-      id: 2,
-      name: "Max",
-      breed: "Persian Cat",
-      age: 2,
-      location: "1.8 miles away",
-      description: "Calm and affectionate, perfect gentleman. Has excellent lineage and health records.",
-      photo: "https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?w=400&h=600&fit=crop",
-      verified: true,
-      owner: "Mike R."
-    },
-    {
-      id: 3,
-      name: "Bella",
-      breed: "Labrador",
-      age: 4,
-      location: "3.2 miles away",
-      description: "Sweet and gentle, great with kids. Looking for a healthy mate for future litters.",
-      photo: "https://images.unsplash.com/photo-1582562124811-c09040d0a901?w=400&h=600&fit=crop",
-      verified: false,
-      owner: "Emma K."
-    }
-  ];
 
   const currentPet = pets[currentPetIndex];
 
@@ -118,12 +145,26 @@ const Discovery = () => {
     navigate('/onboarding');
   };
 
-  if (!currentPet) {
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading pets...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentPet || pets.length === 0) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">No more pets nearby!</h2>
-          <p className="text-muted-foreground">Check back later for new matches</p>
+          <p className="text-muted-foreground mb-4">Check back later for new matches</p>
+          <Button onClick={() => navigate('/profile')} className="bg-gradient-primary">
+            Create Your Pet Profile
+          </Button>
         </div>
       </div>
     );

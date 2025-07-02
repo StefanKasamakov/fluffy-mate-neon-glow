@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,10 +8,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Camera, Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const PetProfile = () => {
   const [photos, setPhotos] = useState<string[]>([]);
   const [certificates, setCertificates] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [petId, setPetId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     petName: "",
     ownerName: "",
@@ -26,8 +30,76 @@ const PetProfile = () => {
   });
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const addPhoto = () => {
+  // Load existing pet profile if it exists
+  useEffect(() => {
+    if (user) {
+      loadExistingProfile();
+    }
+  }, [user]);
+
+  const loadExistingProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: pets, error } = await supabase
+        .from('pets')
+        .select(`
+          *,
+          pet_photos(*),
+          pet_preferences(*)
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+
+      if (pets && pets.length > 0) {
+        const pet = pets[0];
+        setPetId(pet.id);
+        setFormData({
+          petName: pet.pet_name || "",
+          ownerName: pet.owner_name || "",
+          breed: pet.breed || "",
+          age: pet.age?.toString() || "",
+          gender: pet.gender || "",
+          description: pet.description || "",
+          preferredBreeds: pet.pet_preferences?.[0]?.preferred_breeds || "",
+          distance: pet.pet_preferences?.[0]?.distance_range?.toString() || "",
+          minAge: pet.pet_preferences?.[0]?.min_age?.toString() || "",
+          maxAge: pet.pet_preferences?.[0]?.max_age?.toString() || ""
+        });
+        
+        const photoUrls = pet.pet_photos?.map((photo: any) => photo.photo_url) || [];
+        setPhotos(photoUrls);
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    }
+  };
+
+  const uploadFile = async (file: File, bucket: string): Promise<string | null> => {
+    if (!user) return null;
+    
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(fileName, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(fileName);
+
+    return data.publicUrl;
+  };
+
+  const addPhoto = async () => {
     if (photos.length >= 6) {
       toast({
         title: "Maximum photos reached",
@@ -37,46 +109,75 @@ const PetProfile = () => {
       return;
     }
     
-    // Simulate file input - in real app this would open file picker
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
-    fileInput.onchange = (e) => {
+    fileInput.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        // In real app, upload to storage and get URL
-        const newPhoto = `https://images.unsplash.com/photo-${Math.random() > 0.5 ? '1582562124811-c09040d0a901' : '1535268647677-300dbf3d78d1'}?w=400&h=400&fit=crop`;
-        setPhotos([...photos, newPhoto]);
-        toast({
-          title: "Photo added",
-          description: "Your pet photo has been uploaded successfully."
-        });
+        try {
+          setLoading(true);
+          const photoUrl = await uploadFile(file, 'pet-photos');
+          if (photoUrl) {
+            setPhotos([...photos, photoUrl]);
+            toast({
+              title: "Photo uploaded",
+              description: "Your pet photo has been uploaded successfully."
+            });
+          }
+        } catch (error) {
+          console.error('Error uploading photo:', error);
+          toast({
+            title: "Upload failed",
+            description: "Failed to upload photo. Please try again.",
+            variant: "destructive"
+          });
+        } finally {
+          setLoading(false);
+        }
       }
     };
     fileInput.click();
   };
 
-  const removePhoto = (index: number) => {
+  const removePhoto = async (index: number) => {
+    const photoUrl = photos[index];
     setPhotos(photos.filter((_, i) => i !== index));
+    
+    // In a real app, you'd also delete from storage here
     toast({
       title: "Photo removed",
       description: "The photo has been removed from your profile."
     });
   };
 
-  const addCertificate = () => {
-    // Simulate file input for certificates
+  const addCertificate = async () => {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = '.pdf,.jpg,.jpeg,.png';
-    fileInput.onchange = (e) => {
+    fileInput.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        setCertificates([...certificates, `cert-${Date.now()}`]);
-        toast({
-          title: "Certificate uploaded",
-          description: "Health certificate has been uploaded successfully."
-        });
+        try {
+          setLoading(true);
+          const certUrl = await uploadFile(file, 'pet-certificates');
+          if (certUrl) {
+            setCertificates([...certificates, certUrl]);
+            toast({
+              title: "Certificate uploaded",
+              description: "Health certificate has been uploaded successfully."
+            });
+          }
+        } catch (error) {
+          console.error('Error uploading certificate:', error);
+          toast({
+            title: "Upload failed",
+            description: "Failed to upload certificate. Please try again.",
+            variant: "destructive"
+          });
+        } finally {
+          setLoading(false);
+        }
       }
     };
     fileInput.click();
@@ -86,7 +187,16 @@ const PetProfile = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!user) {
+      toast({
+        title: "Not authenticated",
+        description: "Please log in to save your profile.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Validate required fields
     if (!formData.petName || !formData.ownerName) {
       toast({
@@ -97,14 +207,117 @@ const PetProfile = () => {
       return;
     }
 
-    // In real app, save to database
-    toast({
-      title: "Profile saved",
-      description: "Your pet profile has been saved successfully."
-    });
-    
-    // Navigate back to discovery
-    navigate('/discovery');
+    try {
+      setLoading(true);
+
+      // Save or update pet
+      const petData = {
+        user_id: user.id,
+        pet_name: formData.petName,
+        owner_name: formData.ownerName,
+        breed: formData.breed || null,
+        age: formData.age ? parseInt(formData.age) : null,
+        gender: formData.gender || null,
+        description: formData.description || null,
+      };
+
+      let currentPetId = petId;
+
+      if (petId) {
+        // Update existing pet
+        const { error: petError } = await supabase
+          .from('pets')
+          .update(petData)
+          .eq('id', petId);
+
+        if (petError) throw petError;
+      } else {
+        // Create new pet
+        const { data: newPet, error: petError } = await supabase
+          .from('pets')
+          .insert(petData)
+          .select()
+          .single();
+
+        if (petError) throw petError;
+        currentPetId = newPet.id;
+        setPetId(currentPetId);
+      }
+
+      // Save pet photos
+      if (currentPetId && photos.length > 0) {
+        // Delete existing photos first
+        await supabase
+          .from('pet_photos')
+          .delete()
+          .eq('pet_id', currentPetId);
+
+        // Insert new photos
+        const photoData = photos.map((url, index) => ({
+          pet_id: currentPetId,
+          photo_url: url,
+          is_primary: index === 0
+        }));
+
+        const { error: photoError } = await supabase
+          .from('pet_photos')
+          .insert(photoData);
+
+        if (photoError) throw photoError;
+      }
+
+      // Save preferences
+      if (currentPetId) {
+        const preferencesData = {
+          pet_id: currentPetId,
+          preferred_breeds: formData.preferredBreeds || 'any',
+          distance_range: formData.distance ? parseInt(formData.distance) : 25,
+          min_age: formData.minAge ? parseInt(formData.minAge) : 1,
+          max_age: formData.maxAge ? parseInt(formData.maxAge) : 10,
+        };
+
+        // Check if preferences exist
+        const { data: existingPrefs } = await supabase
+          .from('pet_preferences')
+          .select('id')
+          .eq('pet_id', currentPetId)
+          .single();
+
+        if (existingPrefs) {
+          // Update existing preferences
+          const { error: prefsError } = await supabase
+            .from('pet_preferences')
+            .update(preferencesData)
+            .eq('pet_id', currentPetId);
+
+          if (prefsError) throw prefsError;
+        } else {
+          // Create new preferences
+          const { error: prefsError } = await supabase
+            .from('pet_preferences')
+            .insert(preferencesData);
+
+          if (prefsError) throw prefsError;
+        }
+      }
+
+      toast({
+        title: "Profile saved",
+        description: "Your pet profile has been saved successfully."
+      });
+      
+      // Navigate back to discovery
+      navigate('/discovery');
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      toast({
+        title: "Save failed",
+        description: "Failed to save profile. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -117,8 +330,8 @@ const PetProfile = () => {
           </Button>
         </Link>
         <h1 className="text-lg font-semibold">Pet Profile</h1>
-        <Button variant="ghost" size="sm" className="text-accent" onClick={handleSave}>
-          Save
+        <Button variant="ghost" size="sm" className="text-accent" onClick={handleSave} disabled={loading}>
+          {loading ? 'Saving...' : 'Save'}
         </Button>
       </div>
 
@@ -317,8 +530,9 @@ const PetProfile = () => {
         <Button 
           className="w-full bg-gradient-primary hover:opacity-90 shadow-button"
           onClick={handleSave}
+          disabled={loading}
         >
-          Save Profile
+          {loading ? 'Saving...' : 'Save Profile'}
         </Button>
       </div>
     </div>

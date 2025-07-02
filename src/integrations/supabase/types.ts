@@ -9,6 +9,156 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      pet_certificates: {
+        Row: {
+          certificate_type: string | null
+          certificate_url: string
+          created_at: string
+          id: string
+          pet_id: string
+        }
+        Insert: {
+          certificate_type?: string | null
+          certificate_url: string
+          created_at?: string
+          id?: string
+          pet_id: string
+        }
+        Update: {
+          certificate_type?: string | null
+          certificate_url?: string
+          created_at?: string
+          id?: string
+          pet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_certificates_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_photos: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean | null
+          pet_id: string
+          photo_url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean | null
+          pet_id: string
+          photo_url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean | null
+          pet_id?: string
+          photo_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_photos_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_preferences: {
+        Row: {
+          created_at: string
+          distance_range: number | null
+          id: string
+          max_age: number | null
+          min_age: number | null
+          pet_id: string
+          preferred_breeds: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          distance_range?: number | null
+          id?: string
+          max_age?: number | null
+          min_age?: number | null
+          pet_id: string
+          preferred_breeds?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          distance_range?: number | null
+          id?: string
+          max_age?: number | null
+          min_age?: number | null
+          pet_id?: string
+          preferred_breeds?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_preferences_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pets: {
+        Row: {
+          age: number | null
+          breed: string | null
+          created_at: string
+          description: string | null
+          gender: string | null
+          id: string
+          location: string | null
+          owner_name: string
+          pet_name: string
+          updated_at: string
+          user_id: string
+          verified: boolean | null
+        }
+        Insert: {
+          age?: number | null
+          breed?: string | null
+          created_at?: string
+          description?: string | null
+          gender?: string | null
+          id?: string
+          location?: string | null
+          owner_name: string
+          pet_name: string
+          updated_at?: string
+          user_id: string
+          verified?: boolean | null
+        }
+        Update: {
+          age?: number | null
+          breed?: string | null
+          created_at?: string
+          description?: string | null
+          gender?: string | null
+          id?: string
+          location?: string | null
+          owner_name?: string
+          pet_name?: string
+          updated_at?: string
+          user_id?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
