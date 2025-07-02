@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -7,19 +7,104 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Camera, Plus, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const PetProfile = () => {
   const [photos, setPhotos] = useState<string[]>([]);
   const [certificates, setCertificates] = useState<string[]>([]);
+  const [formData, setFormData] = useState({
+    petName: "",
+    ownerName: "",
+    breed: "",
+    age: "",
+    gender: "",
+    description: "",
+    preferredBreeds: "",
+    distance: "",
+    minAge: "",
+    maxAge: ""
+  });
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const addPhoto = () => {
-    // In real app, this would open camera/gallery
-    const newPhoto = `https://images.unsplash.com/photo-${Math.random() > 0.5 ? '1582562124811-c09040d0a901' : '1535268647677-300dbf3d78d1'}?w=400&h=400&fit=crop`;
-    setPhotos([...photos, newPhoto]);
+    if (photos.length >= 6) {
+      toast({
+        title: "Maximum photos reached",
+        description: "You can only add up to 6 photos.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Simulate file input - in real app this would open file picker
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        // In real app, upload to storage and get URL
+        const newPhoto = `https://images.unsplash.com/photo-${Math.random() > 0.5 ? '1582562124811-c09040d0a901' : '1535268647677-300dbf3d78d1'}?w=400&h=400&fit=crop`;
+        setPhotos([...photos, newPhoto]);
+        toast({
+          title: "Photo added",
+          description: "Your pet photo has been uploaded successfully."
+        });
+      }
+    };
+    fileInput.click();
   };
 
   const removePhoto = (index: number) => {
     setPhotos(photos.filter((_, i) => i !== index));
+    toast({
+      title: "Photo removed",
+      description: "The photo has been removed from your profile."
+    });
+  };
+
+  const addCertificate = () => {
+    // Simulate file input for certificates
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.pdf,.jpg,.jpeg,.png';
+    fileInput.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        setCertificates([...certificates, `cert-${Date.now()}`]);
+        toast({
+          title: "Certificate uploaded",
+          description: "Health certificate has been uploaded successfully."
+        });
+      }
+    };
+    fileInput.click();
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = () => {
+    // Validate required fields
+    if (!formData.petName || !formData.ownerName) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in at least the pet name and owner name.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // In real app, save to database
+    toast({
+      title: "Profile saved",
+      description: "Your pet profile has been saved successfully."
+    });
+    
+    // Navigate back to discovery
+    navigate('/discovery');
   };
 
   return (
@@ -32,7 +117,7 @@ const PetProfile = () => {
           </Button>
         </Link>
         <h1 className="text-lg font-semibold">Pet Profile</h1>
-        <Button variant="ghost" size="sm" className="text-accent">
+        <Button variant="ghost" size="sm" className="text-accent" onClick={handleSave}>
           Save
         </Button>
       </div>
@@ -72,11 +157,21 @@ const PetProfile = () => {
         <Card className="p-4 bg-gradient-card border-border">
           <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
           <div className="space-y-4">
-            <Input placeholder="Pet's name" className="bg-secondary border-border" />
+            <Input 
+              placeholder="Pet's name" 
+              className="bg-secondary border-border"
+              value={formData.petName}
+              onChange={(e) => handleInputChange('petName', e.target.value)}
+            />
             
-            <Input placeholder="Owner's name" className="bg-secondary border-border" />
+            <Input 
+              placeholder="Owner's name" 
+              className="bg-secondary border-border"
+              value={formData.ownerName}
+              onChange={(e) => handleInputChange('ownerName', e.target.value)}
+            />
             
-            <Select>
+            <Select value={formData.breed} onValueChange={(value) => handleInputChange('breed', value)}>
               <SelectTrigger className="bg-secondary border-border">
                 <SelectValue placeholder="Breed" />
               </SelectTrigger>
@@ -90,8 +185,14 @@ const PetProfile = () => {
             </Select>
 
             <div className="grid grid-cols-2 gap-4">
-              <Input placeholder="Age (years)" type="number" className="bg-secondary border-border" />
-              <Select>
+              <Input 
+                placeholder="Age (years)" 
+                type="number" 
+                className="bg-secondary border-border"
+                value={formData.age}
+                onChange={(e) => handleInputChange('age', e.target.value)}
+              />
+              <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
                 <SelectTrigger className="bg-secondary border-border">
                   <SelectValue placeholder="Gender" />
                 </SelectTrigger>
@@ -105,6 +206,8 @@ const PetProfile = () => {
             <Textarea
               placeholder="Tell us about your pet's personality, traits, and what makes them special..."
               className="bg-secondary border-border min-h-[100px]"
+              value={formData.description}
+              onChange={(e) => handleInputChange('description', e.target.value)}
             />
           </div>
         </Card>
@@ -141,7 +244,7 @@ const PetProfile = () => {
                   </div>
                 ))}
                 <button
-                  onClick={() => setCertificates([...certificates, 'new-cert'])}
+                  onClick={addCertificate}
                   className="aspect-[4/3] border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center hover:border-accent transition-colors"
                 >
                   <Camera className="w-5 h-5 text-muted-foreground mb-1" />
@@ -161,7 +264,7 @@ const PetProfile = () => {
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium mb-2 block">Preferred Breeds</label>
-              <Select>
+              <Select value={formData.preferredBreeds} onValueChange={(value) => handleInputChange('preferredBreeds', value)}>
                 <SelectTrigger className="bg-secondary border-border">
                   <SelectValue placeholder="Select preferred breeds" />
                 </SelectTrigger>
@@ -175,7 +278,7 @@ const PetProfile = () => {
 
             <div>
               <label className="text-sm font-medium mb-2 block">Distance Range</label>
-              <Select>
+              <Select value={formData.distance} onValueChange={(value) => handleInputChange('distance', value)}>
                 <SelectTrigger className="bg-secondary border-border">
                   <SelectValue placeholder="Select distance range" />
                 </SelectTrigger>
@@ -192,14 +295,29 @@ const PetProfile = () => {
             <div>
               <label className="text-sm font-medium mb-2 block">Age Range</label>
               <div className="grid grid-cols-2 gap-4">
-                <Input placeholder="Min age" type="number" className="bg-secondary border-border" />
-                <Input placeholder="Max age" type="number" className="bg-secondary border-border" />
+                <Input 
+                  placeholder="Min age" 
+                  type="number" 
+                  className="bg-secondary border-border"
+                  value={formData.minAge}
+                  onChange={(e) => handleInputChange('minAge', e.target.value)}
+                />
+                <Input 
+                  placeholder="Max age" 
+                  type="number" 
+                  className="bg-secondary border-border"
+                  value={formData.maxAge}
+                  onChange={(e) => handleInputChange('maxAge', e.target.value)}
+                />
               </div>
             </div>
           </div>
         </Card>
 
-        <Button className="w-full bg-gradient-primary hover:opacity-90 shadow-button">
+        <Button 
+          className="w-full bg-gradient-primary hover:opacity-90 shadow-button"
+          onClick={handleSave}
+        >
           Save Profile
         </Button>
       </div>
