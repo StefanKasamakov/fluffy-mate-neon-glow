@@ -1,8 +1,5 @@
+
 import { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Heart, X, MapPin, User, SlidersHorizontal, LogOut, RotateCcw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSpring, animated } from "react-spring";
 import { useDrag } from "@use-gesture/react";
@@ -13,10 +10,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSwipeHistory } from "@/hooks/useSwipeHistory";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { useToast } from "@/hooks/use-toast";
-import SettingsDropdown from "@/components/SettingsDropdown";
 import { useDailyLimits } from "@/hooks/useDailyLimits";
 import { SuperLikeAnimation } from "@/components/SuperLikeAnimation";
 import { LimitReachedModal } from "@/components/LimitReachedModal";
+import DiscoveryHeader from "@/components/discovery/DiscoveryHeader";
+import PetCard from "@/components/discovery/PetCard";
+import ActionButtons from "@/components/discovery/ActionButtons";
+import BottomNavigation from "@/components/discovery/BottomNavigation";
+import EmptyState from "@/components/discovery/EmptyState";
+import LoadingState from "@/components/discovery/LoadingState";
 
 const Discovery = () => {
   const [currentPetIndex, setCurrentPetIndex] = useState(0);
@@ -32,8 +34,7 @@ const Discovery = () => {
   const [showSuperLikeAnimation, setShowSuperLikeAnimation] = useState(false);
   const [limitModalOpen, setLimitModalOpen] = useState(false);
   const [limitModalType, setLimitModalType] = useState<'superLike' | 'rewind'>('superLike');
-  const { signOut, user } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const { toast } = useToast();
   const { addSwipeAction, undoLastSwipe, canUndo } = useSwipeHistory();
   const { unreadCount } = useUnreadMessages();
@@ -290,7 +291,7 @@ const Discovery = () => {
   const currentPet = pets[currentPetIndex];
   const nextPet = pets[currentPetIndex + 1];
 
-    const handleSwipe = (direction: 'left' | 'right' | 'up') => {
+  const handleSwipe = (direction: 'left' | 'right' | 'up') => {
     const isLike = direction === 'right';
     const isSuperLike = direction === 'up';
     setSwipeDirection(direction);
@@ -404,55 +405,22 @@ const Discovery = () => {
     // In real app, this would trigger a new API call with filters
   };
 
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/onboarding');
+  const handleProfileClick = () => {
+    setSelectedPetId(currentPet.id);
+    setProfileViewOpen(true);
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading pets...</p>
-        </div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (!currentPet || pets.length === 0) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">No more pets nearby!</h2>
-          <p className="text-muted-foreground mb-4">Check back later for new matches</p>
-          <Button onClick={() => navigate('/profile')} className="bg-gradient-primary">
-            Create Your Pet Profile
-          </Button>
-        </div>
-      </div>
-    );
+    return <EmptyState />;
   }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        <Link to="/profile">
-          <Button variant="ghost" size="sm">
-            <User className="w-5 h-5" />
-          </Button>
-        </Link>
-        <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-          FluffyMatch
-        </h1>
-        <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setIsFilterOpen(true)}>
-            <SlidersHorizontal className="w-5 h-5" />
-          </Button>
-          <SettingsDropdown />
-        </div>
-      </div>
+      <DiscoveryHeader onFilterOpen={() => setIsFilterOpen(true)} />
 
       {/* Card Stack */}
       <div className="flex-1 flex items-center justify-center p-4">
@@ -481,150 +449,28 @@ const Discovery = () => {
           )}
 
           {/* Main Card */}
-          <animated.div 
-            ref={cardRef}
-            {...bind()}
-            style={{ 
-              x,
-              y,
-              rotate: rotate.to((r: number) => `${r}deg`), 
-              scale,
-              zIndex: 2
-            }}
-            className="relative bg-gradient-card border border-border rounded-2xl overflow-hidden shadow-card touch-none select-none cursor-grab active:cursor-grabbing"
-          >
-            {/* Image */}
-            <div 
-              className="relative h-96 cursor-pointer" 
-              onClick={() => {
-                setSelectedPetId(currentPet.id);
-                setProfileViewOpen(true);
-              }}
-            >
-              <img
-                src={currentPet.photo}
-                alt={currentPet.name}
-                className="w-full h-full object-cover"
-              />
-              
-              {/* Verification Badge */}
-              {currentPet.verified && (
-                <Badge className="absolute top-4 right-4 bg-neon-green/20 text-neon-green border-neon-green">
-                  ✓ Verified
-                </Badge>
-              )}
+          <PetCard
+            pet={currentPet}
+            style={{ x, y, rotate: rotate.to((r: number) => `${r}deg`), scale }}
+            bind={bind}
+            cardRef={cardRef}
+            onClick={handleProfileClick}
+            zIndex={2}
+          />
 
-              {/* Gradient Overlay */}
-              <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/80 to-transparent" />
-            </div>
+          <ActionButtons
+            onRewind={handleRewind}
+            onDislike={() => handleSwipe('left')}
+            onSuperLike={handleSuperLike}
+            onLike={() => handleSwipe('right')}
+            canUndo={canUndo}
+            canUseRewind={canUseRewind}
+            canUseSuperLike={canUseSuperLike}
+            rewindsRemaining={rewindsRemaining}
+            superLikesRemaining={superLikesRemaining}
+          />
 
-            {/* Pet Info */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 text-white pointer-events-none">
-              <div className="flex items-baseline gap-2 mb-2">
-                <h2 className="text-2xl font-bold">{currentPet.name}</h2>
-                <span className="text-lg">{currentPet.age} years</span>
-              </div>
-              
-              <div className="flex items-center gap-1 mb-2">
-                <MapPin className="w-4 h-4" />
-                <span className="text-sm">{currentPet.location}</span>
-              </div>
-              
-              <p className="text-sm mb-2">{currentPet.breed}</p>
-              <p className="text-sm opacity-90">{currentPet.description}</p>
-              
-              <div className="flex items-center justify-between mt-3">
-                <span className="text-xs text-gray-300">Owner: {currentPet.owner}</span>
-              </div>
-            </div>
-          </animated.div>
-
-          {/* Action Buttons */}
-          <div className="flex justify-center gap-4 mt-8">
-            <Button
-              onClick={handleRewind}
-              disabled={!canUndo || !canUseRewind}
-              size="lg"
-              variant="outline"
-              className="rounded-full w-16 h-16 border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black disabled:opacity-50 disabled:cursor-not-allowed"
-              title={canUseRewind ? `Rewind (${rewindsRemaining} left)` : "No rewinds left today"}
-            >
-              <RotateCcw className="w-6 h-6" />
-            </Button>
-            
-            <Button
-              onClick={() => handleSwipe('left')}
-              size="lg"
-              variant="outline"
-              className="rounded-full w-16 h-16 border-destructive text-destructive hover:bg-destructive hover:text-white"
-            >
-              <X className="w-6 h-6" />
-            </Button>
-            
-            <Button
-              onClick={handleSuperLike}
-              disabled={!canUseSuperLike}
-              size="lg"
-              variant="outline"
-              className="rounded-full w-16 h-16 border-neon-yellow text-neon-yellow hover:bg-neon-yellow hover:text-black disabled:opacity-50 disabled:cursor-not-allowed"
-              title={canUseSuperLike ? `Super Lick (${superLikesRemaining} left)` : "No Super Licks left today"}
-            >
-              <div className="text-2xl">👅</div>
-            </Button>
-            
-            <Button
-              onClick={() => handleSwipe('right')}
-              size="lg"
-              className="rounded-full w-16 h-16 bg-gradient-primary hover:opacity-90 shadow-button"
-            >
-              <Heart className="w-6 h-6" />
-            </Button>
-          </div>
-
-          {/* Bottom Navigation */}
-          <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border">
-            <div className="flex justify-around py-2">
-              <Link to="/discovery" className="flex-1">
-                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1 text-neon-pink font-semibold">
-                  <Heart className="w-5 h-5" />
-                  <span className="text-xs">Discover</span>
-                </Button>
-              </Link>
-              
-              <Link to="/matches" className="flex-1">
-                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1 relative text-muted-foreground">
-                  <div className="w-5 h-5 flex items-center justify-center">💬</div>
-                  <span className="text-xs">Matches</span>
-                  {unreadCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 bg-destructive text-destructive-foreground text-xs flex items-center justify-center rounded-full">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </Badge>
-                  )}
-                </Button>
-              </Link>
-              
-              <Link to="/who-liked-you" className="flex-1">
-                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1 text-muted-foreground">
-                  <div className="w-5 h-5 flex items-center justify-center">👀</div>
-                  <span className="text-xs">Likes</span>
-                </Button>
-              </Link>
-              
-              <Link to="/premium" className="flex-1">
-                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1 text-muted-foreground">
-                  <div className="w-5 h-5 flex items-center justify-center">⭐</div>
-                  <span className="text-xs">Premium</span>
-                </Button>
-              </Link>
-              
-              <Link to="/profile" className="flex-1">
-                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1 text-muted-foreground">
-                  <User className="w-5 h-5" />
-                  <span className="text-xs">Profile</span>
-                </Button>
-              </Link>
-            </div>
-          </div>
+          <BottomNavigation unreadCount={unreadCount} />
         </div>
       </div>
 
