@@ -14,10 +14,13 @@ import { useSwipeHistory } from "@/hooks/useSwipeHistory";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { useToast } from "@/hooks/use-toast";
 import SettingsDropdown from "@/components/SettingsDropdown";
+import { useDailyLimits } from "@/hooks/useDailyLimits";
+import { SuperLikeAnimation } from "@/components/SuperLikeAnimation";
+import { LimitReachedModal } from "@/components/LimitReachedModal";
 
 const Discovery = () => {
   const [currentPetIndex, setCurrentPetIndex] = useState(0);
-  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | 'up' | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [pets, setPets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,11 +29,15 @@ const Discovery = () => {
   const [currentMatch, setCurrentMatch] = useState<any>(null);
   const [profileViewOpen, setProfileViewOpen] = useState(false);
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
+  const [showSuperLikeAnimation, setShowSuperLikeAnimation] = useState(false);
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
+  const [limitModalType, setLimitModalType] = useState<'superLike' | 'rewind'>('superLike');
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { addSwipeAction, undoLastSwipe, canUndo } = useSwipeHistory();
   const { unreadCount } = useUnreadMessages();
+  const { canUseSuperLike, canUseRewind, useSuperLike, useRewind, superLikesRemaining, rewindsRemaining } = useDailyLimits();
   const [filters, setFilters] = useState<FilterSettings>({
     breed: "Any Breed",
     distance: 25,
@@ -114,6 +121,15 @@ const Discovery = () => {
   };
 
   const handleRewind = () => {
+    if (!canUseRewind) {
+      setLimitModalType('rewind');
+      setLimitModalOpen(true);
+      return;
+    }
+
+    const canRewind = useRewind();
+    if (!canRewind) return;
+
     const lastAction = undoLastSwipe();
     if (lastAction && currentPetIndex > 0) {
       setCurrentPetIndex(prev => prev - 1);
@@ -128,13 +144,13 @@ const Discovery = () => {
           .then(() => {
             toast({
               title: "Rewound!",
-              description: "Your last swipe has been undone.",
+              description: `Your last swipe has been undone. ${rewindsRemaining - 1} rewinds left today.`,
             });
           });
       } else {
         toast({
           title: "Rewound!",
-          description: "Your last swipe has been undone.",
+          description: `Your last swipe has been undone. ${rewindsRemaining - 1} rewinds left today.`,
         });
       }
     }
@@ -257,62 +273,128 @@ const Discovery = () => {
     }
   };
 
-  const [{ x, rotate, scale }, api] = useSpring(() => ({
+  const [{ x, y, rotate, scale }, api] = useSpring(() => ({
     x: 0,
+    y: 0,
     rotate: 0,
     scale: 1,
     config: { mass: 1, tension: 300, friction: 40 }
   }));
 
-  const currentPet = pets[currentPetIndex];
+  const [{ x: nextX, scale: nextScale }, nextApi] = useSpring(() => ({
+    x: 0,
+    scale: 0.95,
+    config: { mass: 1, tension: 300, friction: 40 }
+  }));
 
-  const handleSwipe = (direction: 'left' | 'right') => {
+  const currentPet = pets[currentPetIndex];
+  const nextPet = pets[currentPetIndex + 1];
+
+  const handleSwipe = (direction: 'left' | 'right' | 'up') => {
     const isLike = direction === 'right';
+    const isSuperLike = direction === 'up';
     setSwipeDirection(direction);
     
-    // Handle like/dislike
-    if (currentPet) {
-      if (isLike) {
-        handleLike(currentPet.id);
-      } else {
-        handleDislike(currentPet.id);
+    // Handle super like
+    if (isSuperLike) {
+      if (!canUseSuperLike) {
+        setLimitModalType('superLike');
+        setLimitModalOpen(true);
+        setSwipeDirection(null);
+        return;
       }
+      
+      const canSuperLike = useSuperLike();
+      if (!canSuperLike) return;
+      
+      setShowSuperLikeAnimation(true);
+      if (currentPet) {
+        handleLike(currentPet.id);
+      }
+      
+      api.start({
+        y: -window.innerHeight,
+        rotate: 0,
+        scale: 1.1,
+        config: { mass: 0.3, tension: 400, friction: 40 }
+      });
+    } else {
+      // Handle like/dislike
+      if (currentPet) {
+        if (isLike) {
+          handleLike(currentPet.id);
+        } else {
+          handleDislike(currentPet.id);
+        }
+      }
+      
+      api.start({
+        x: isLike ? window.innerWidth * 1.2 : -window.innerWidth * 1.2,
+        rotate: isLike ? 30 : -30,
+        scale: 0.8,
+        config: { mass: 0.3, tension: 400, friction: 40 }
+      });
     }
-    
-    api.start({
-      x: isLike ? window.innerWidth : -window.innerWidth,
-      rotate: isLike ? 30 : -30,
-      scale: 0.8,
-      config: { mass: 0.5, tension: 400, friction: 50 }
+
+    // Animate next card
+    nextApi.start({
+      scale: 1,
+      x: 0,
+      config: { mass: 0.8, tension: 200, friction: 30 }
     });
     
     setTimeout(() => {
       setCurrentPetIndex((prev) => (prev + 1) % pets.length);
-      api.set({ x: 0, rotate: 0, scale: 1 });
+      api.set({ x: 0, y: 0, rotate: 0, scale: 1 });
+      nextApi.set({ scale: 0.95, x: 0 });
       setSwipeDirection(null);
-    }, 600);
+    }, isSuperLike ? 1000 : 500);
+  };
+
+  const handleSuperLike = () => {
+    handleSwipe('up');
   };
 
   const bind = useDrag(
-    ({ active, movement: [mx], direction: [xDir], velocity: [vx] }) => {
-      const trigger = vx > 0.3 || Math.abs(mx) > 150;
-      const dir = xDir < 0 ? -1 : 1;
+    ({ active, movement: [mx, my], direction: [xDir, yDir], velocity: [vx, vy] }) => {
+      const triggerX = vx > 0.2 || Math.abs(mx) > 100;
+      const triggerY = vy > 0.2 || Math.abs(my) > 100;
+      const xDir_normalized = xDir < 0 ? -1 : 1;
       
-      if (!active && trigger) {
-        handleSwipe(dir > 0 ? 'right' : 'left');
+      if (!active && triggerY && my < -80) {
+        // Super like (swipe up)
+        handleSwipe('up');
+      } else if (!active && triggerX) {
+        // Regular swipe left/right
+        handleSwipe(xDir_normalized > 0 ? 'right' : 'left');
       } else {
         api.start({
           x: active ? mx : 0,
-          rotate: active ? mx / 8 : 0,
+          y: active ? my : 0,
+          rotate: active ? mx / 10 : 0,
           scale: active ? 1.02 : 1,
-          immediate: (name) => active && name === 'x'
+          immediate: (name) => active && (name === 'x' || name === 'y')
         });
+
+        // Animate next card on drag
+        if (active && (Math.abs(mx) > 50 || Math.abs(my) > 50)) {
+          nextApi.start({
+            scale: 0.98,
+            x: mx * 0.1,
+            config: { tension: 300, friction: 30 }
+          });
+        } else if (!active) {
+          nextApi.start({
+            scale: 0.95,
+            x: 0,
+            config: { tension: 300, friction: 30 }
+          });
+        }
       }
     },
     { 
-      axis: 'x',
-      bounds: { left: -200, right: 200, top: 0, bottom: 0 },
-      rubberband: 0.15
+      bounds: { left: -300, right: 300, top: -300, bottom: 300 },
+      rubberband: 0.1
     }
   );
 
@@ -374,11 +456,40 @@ const Discovery = () => {
       {/* Card Stack */}
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="relative w-full max-w-sm">
+          {/* Next Card (Preview) */}
+          {nextPet && (
+            <animated.div 
+              style={{ 
+                transform: nextX.to(x => `translateX(${x}px)`),
+                scale: nextScale,
+                zIndex: 1
+              }}
+              className="absolute inset-0 bg-gradient-card border border-border rounded-2xl overflow-hidden shadow-card opacity-60"
+            >
+              <img
+                src={nextPet.photo}
+                alt={nextPet.name}
+                className="w-full h-96 object-cover"
+              />
+              <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/80 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                <h3 className="text-xl font-bold">{nextPet.name}</h3>
+                <p className="text-sm opacity-90">{nextPet.age} years • {nextPet.breed}</p>
+              </div>
+            </animated.div>
+          )}
+
           {/* Main Card */}
           <animated.div 
             ref={cardRef}
             {...bind()}
-            style={{ x, rotate: rotate.to((r: number) => `${r}deg`), scale }}
+            style={{ 
+              x,
+              y,
+              rotate: rotate.to((r: number) => `${r}deg`), 
+              scale,
+              zIndex: 2
+            }}
             className="relative bg-gradient-card border border-border rounded-2xl overflow-hidden shadow-card touch-none select-none cursor-grab active:cursor-grabbing"
           >
             {/* Image */}
@@ -431,10 +542,11 @@ const Discovery = () => {
           <div className="flex justify-center gap-4 mt-8">
             <Button
               onClick={handleRewind}
-              disabled={!canUndo}
+              disabled={!canUndo || !canUseRewind}
               size="lg"
               variant="outline"
               className="rounded-full w-16 h-16 border-accent text-accent hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+              title={canUseRewind ? `Rewind (${rewindsRemaining} left)` : "No rewinds left today"}
             >
               <RotateCcw className="w-6 h-6" />
             </Button>
@@ -449,10 +561,12 @@ const Discovery = () => {
             </Button>
             
             <Button
+              onClick={handleSuperLike}
+              disabled={!canUseSuperLike}
               size="lg"
               variant="outline"
-              className="rounded-full w-16 h-16 border-neon-yellow text-neon-yellow hover:bg-neon-yellow hover:text-black"
-              title="Super Lick - Coming Soon!"
+              className="rounded-full w-16 h-16 border-neon-yellow text-neon-yellow hover:bg-neon-yellow hover:text-black disabled:opacity-50 disabled:cursor-not-allowed"
+              title={canUseSuperLike ? `Super Lick (${superLikesRemaining} left)` : "No Super Licks left today"}
             >
               <div className="text-2xl">👅</div>
             </Button>
@@ -470,14 +584,14 @@ const Discovery = () => {
           <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border">
             <div className="flex justify-around py-2">
               <Link to="/discovery" className="flex-1">
-                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1 text-accent">
+                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1 text-accent font-semibold">
                   <Heart className="w-5 h-5" />
                   <span className="text-xs">Discover</span>
                 </Button>
               </Link>
               
               <Link to="/matches" className="flex-1">
-                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1 relative">
+                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1 relative text-muted-foreground">
                   <div className="w-5 h-5 flex items-center justify-center">💬</div>
                   <span className="text-xs">Matches</span>
                   {unreadCount > 0 && (
@@ -489,21 +603,21 @@ const Discovery = () => {
               </Link>
               
               <Link to="/who-liked-you" className="flex-1">
-                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1">
+                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1 text-muted-foreground">
                   <div className="w-5 h-5 flex items-center justify-center">👀</div>
                   <span className="text-xs">Likes</span>
                 </Button>
               </Link>
               
               <Link to="/premium" className="flex-1">
-                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1">
+                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1 text-muted-foreground">
                   <div className="w-5 h-5 flex items-center justify-center">⭐</div>
                   <span className="text-xs">Premium</span>
                 </Button>
               </Link>
               
               <Link to="/profile" className="flex-1">
-                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1">
+                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1 text-muted-foreground">
                   <User className="w-5 h-5" />
                   <span className="text-xs">Profile</span>
                 </Button>
@@ -528,6 +642,19 @@ const Discovery = () => {
         petId={selectedPetId}
         onLike={handleLike}
         showLikeButton={true}
+      />
+
+      {/* Super Like Animation */}
+      <SuperLikeAnimation
+        isVisible={showSuperLikeAnimation}
+        onComplete={() => setShowSuperLikeAnimation(false)}
+      />
+
+      {/* Limit Reached Modal */}
+      <LimitReachedModal
+        isOpen={limitModalOpen}
+        onClose={() => setLimitModalOpen(false)}
+        type={limitModalType}
       />
 
       {/* Match Animation */}
