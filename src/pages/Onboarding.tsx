@@ -287,14 +287,14 @@ const Onboarding = () => {
 
             {/* Toggle between login/signup */}
             <div className="text-center">
-              <button
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-accent hover:text-accent/80"
-              >
-                {isLogin 
-                  ? "Don't have an account? Sign up" 
-                  : "Already have an account? Sign in"
-                }
+               <button
+                 onClick={() => setIsLogin(!isLogin)}
+                 className="text-sm text-neon-cyan hover:text-neon-cyan/80"
+               >
+                 {isLogin 
+                   ? "Don't have an account? Sign up" 
+                   : "Already have an account? Sign in"
+                 }
               </button>
             </div>
           </div>

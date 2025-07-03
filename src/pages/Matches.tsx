@@ -141,35 +141,30 @@ const Matches = () => {
           New Matches
         </h2>
         
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          {matches.slice(0, 3).map((match) => (
-            <div key={match.id} className="relative">
-              <img
-                src={match.photo}
-                alt={match.petName}
-                className="w-full aspect-square object-cover rounded-lg border-2 border-neon-pink/30 cursor-pointer"
+        <div className="flex gap-3 overflow-x-auto pb-2 mb-6">
+          {matches.slice(0, 6).map((match) => (
+            <div key={match.id} className="relative flex-shrink-0">
+              <div 
+                className="w-16 h-16 rounded-full border-3 border-neon-pink/50 p-0.5 cursor-pointer"
                 onClick={() => {
                   setSelectedPetId(match.petId);
                   setProfileViewOpen(true);
                 }}
-              />
+              >
+                <img
+                  src={match.photo}
+                  alt={match.petName}
+                  className="w-full h-full object-cover rounded-full"
+                />
+              </div>
               {match.verified && (
-                <Badge className="absolute -top-1 -right-1 w-6 h-6 p-0 bg-neon-green text-black text-xs flex items-center justify-center">
+                <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 bg-neon-green text-black text-xs flex items-center justify-center rounded-full">
                   ✓
                 </Badge>
               )}
-              <div className="mt-2 text-center">
-                <p 
-                  className="text-sm font-medium cursor-pointer hover:text-accent"
-                  onClick={() => {
-                    setSelectedPetId(match.petId);
-                    setProfileViewOpen(true);
-                  }}
-                >
-                  {match.petName}
-                </p>
-                <p className="text-xs text-muted-foreground">{match.matchedAt}</p>
-              </div>
+              <p className="text-xs text-center mt-1 text-foreground truncate w-16">
+                {match.petName}
+              </p>
             </div>
           ))}
         </div>

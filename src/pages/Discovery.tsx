@@ -290,7 +290,7 @@ const Discovery = () => {
   const currentPet = pets[currentPetIndex];
   const nextPet = pets[currentPetIndex + 1];
 
-  const handleSwipe = (direction: 'left' | 'right' | 'up') => {
+    const handleSwipe = (direction: 'left' | 'right' | 'up') => {
     const isLike = direction === 'right';
     const isSuperLike = direction === 'up';
     setSwipeDirection(direction);
@@ -319,7 +319,7 @@ const Discovery = () => {
         config: { mass: 0.3, tension: 400, friction: 40 }
       });
     } else {
-      // Handle like/dislike
+      // Handle like/dislike with full screen animation
       if (currentPet) {
         if (isLike) {
           handleLike(currentPet.id);
@@ -329,14 +329,15 @@ const Discovery = () => {
       }
       
       api.start({
-        x: isLike ? window.innerWidth * 1.2 : -window.innerWidth * 1.2,
+        x: isLike ? window.innerWidth * 1.5 : -window.innerWidth * 1.5,
+        y: isLike ? -50 : 50,
         rotate: isLike ? 30 : -30,
-        scale: 0.8,
-        config: { mass: 0.3, tension: 400, friction: 40 }
+        scale: 0.9,
+        config: { mass: 0.4, tension: 350, friction: 30 }
       });
     }
 
-    // Animate next card
+    // Animate next card smoothly
     nextApi.start({
       scale: 1,
       x: 0,
@@ -348,7 +349,7 @@ const Discovery = () => {
       api.set({ x: 0, y: 0, rotate: 0, scale: 1 });
       nextApi.set({ scale: 0.95, x: 0 });
       setSwipeDirection(null);
-    }, isSuperLike ? 1000 : 500);
+    }, isSuperLike ? 1000 : 600);
   };
 
   const handleSuperLike = () => {
@@ -357,11 +358,11 @@ const Discovery = () => {
 
   const bind = useDrag(
     ({ active, movement: [mx, my], direction: [xDir, yDir], velocity: [vx, vy] }) => {
-      const triggerX = vx > 0.2 || Math.abs(mx) > 100;
-      const triggerY = vy > 0.2 || Math.abs(my) > 100;
+      const triggerX = vx > 0.15 || Math.abs(mx) > 80;
+      const triggerY = vy > 0.15 || Math.abs(my) > 80;
       const xDir_normalized = xDir < 0 ? -1 : 1;
       
-      if (!active && triggerY && my < -80) {
+      if (!active && triggerY && my < -60) {
         // Super like (swipe up)
         handleSwipe('up');
       } else if (!active && triggerX) {
@@ -371,16 +372,16 @@ const Discovery = () => {
         api.start({
           x: active ? mx : 0,
           y: active ? my : 0,
-          rotate: active ? mx / 10 : 0,
+          rotate: active ? mx / 12 : 0,
           scale: active ? 1.02 : 1,
           immediate: (name) => active && (name === 'x' || name === 'y')
         });
 
         // Animate next card on drag
-        if (active && (Math.abs(mx) > 50 || Math.abs(my) > 50)) {
+        if (active && (Math.abs(mx) > 30 || Math.abs(my) > 30)) {
           nextApi.start({
             scale: 0.98,
-            x: mx * 0.1,
+            x: mx * 0.08,
             config: { tension: 300, friction: 30 }
           });
         } else if (!active) {
@@ -393,8 +394,8 @@ const Discovery = () => {
       }
     },
     { 
-      bounds: { left: -300, right: 300, top: -300, bottom: 300 },
-      rubberband: 0.1
+      bounds: { left: -250, right: 250, top: -250, bottom: 250 },
+      rubberband: 0.15
     }
   );
 
@@ -518,7 +519,7 @@ const Discovery = () => {
             </div>
 
             {/* Pet Info */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+            <div className="absolute bottom-0 left-0 right-0 p-6 text-white pointer-events-none">
               <div className="flex items-baseline gap-2 mb-2">
                 <h2 className="text-2xl font-bold">{currentPet.name}</h2>
                 <span className="text-lg">{currentPet.age} years</span>
@@ -545,7 +546,7 @@ const Discovery = () => {
               disabled={!canUndo || !canUseRewind}
               size="lg"
               variant="outline"
-              className="rounded-full w-16 h-16 border-accent text-accent hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-full w-16 h-16 border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black disabled:opacity-50 disabled:cursor-not-allowed"
               title={canUseRewind ? `Rewind (${rewindsRemaining} left)` : "No rewinds left today"}
             >
               <RotateCcw className="w-6 h-6" />
@@ -584,7 +585,7 @@ const Discovery = () => {
           <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border">
             <div className="flex justify-around py-2">
               <Link to="/discovery" className="flex-1">
-                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1 text-accent font-semibold">
+                <Button variant="ghost" className="w-full h-16 flex flex-col gap-1 text-neon-pink font-semibold">
                   <Heart className="w-5 h-5" />
                   <span className="text-xs">Discover</span>
                 </Button>

@@ -35,11 +35,11 @@
     --ring: 283 100% 60%;
 
     /* Neon accent colors */
-    --neon-pink: 320 100% 65%;
-    --neon-cyan: 195 100% 75%;
+    --neon-pink: 320 100% 75%;
+    --neon-cyan: 195 100% 85%;
     --neon-purple: 283 100% 75%;
-    --neon-green: 120 100% 65%;
-    --neon-yellow: 60 100% 65%;
+    --neon-green: 120 100% 75%;
+    --neon-yellow: 60 100% 75%;
 
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--neon-pink)), hsl(var(--neon-purple)));

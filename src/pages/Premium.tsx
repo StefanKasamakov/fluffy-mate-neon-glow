@@ -91,13 +91,13 @@ const Premium = () => {
           <div className="grid grid-cols-1 gap-3">
             {features.map((feature, index) => (
               <Card key={index} className="p-4 bg-gradient-card border-border">
-                <div className="flex items-start gap-3">
-                  <div className="text-accent mt-0.5">{feature.icon}</div>
-                  <div>
-                    <h4 className="font-medium text-foreground">{feature.title}</h4>
-                    <p className="text-sm text-muted-foreground">{feature.description}</p>
-                  </div>
-                </div>
+                 <div className="flex items-start gap-3">
+                   <div className="text-neon-cyan mt-0.5">{feature.icon}</div>
+                   <div>
+                     <h4 className="font-medium text-foreground">{feature.title}</h4>
+                     <p className="text-sm text-muted-foreground">{feature.description}</p>
+                   </div>
+                 </div>
               </Card>
             ))}
           </div>
@@ -123,10 +123,10 @@ const Premium = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="font-semibold text-foreground">{plan.name}</h4>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-bold text-accent">{plan.price}</span>
-                        <span className="text-sm text-muted-foreground">{plan.period}</span>
-                      </div>
+                       <div className="flex items-baseline gap-1">
+                         <span className="text-2xl font-bold text-neon-pink">{plan.price}</span>
+                         <span className="text-sm text-foreground">{plan.period}</span>
+                       </div>
                     </div>
                   </div>
                   
@@ -139,15 +139,15 @@ const Premium = () => {
                     ))}
                   </div>
                   
-                  <Button 
-                    className={`w-full ${
-                      plan.popular 
-                        ? "bg-gradient-primary hover:opacity-90 shadow-button" 
-                        : "bg-secondary hover:bg-secondary/80"
-                    }`}
-                  >
-                    Choose {plan.name}
-                  </Button>
+                   <Button 
+                     className={`w-full ${
+                       plan.popular 
+                         ? "bg-gradient-primary hover:opacity-90 shadow-button text-black" 
+                         : "bg-gradient-accent hover:opacity-90 text-black"
+                     }`}
+                   >
+                     Choose {plan.name}
+                   </Button>
                 </div>
               </Card>
             ))}
