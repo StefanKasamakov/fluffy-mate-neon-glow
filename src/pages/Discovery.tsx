@@ -268,6 +268,7 @@ const Discovery = () => {
 
   const handleSwipe = (direction: 'left' | 'right') => {
     const isLike = direction === 'right';
+    setSwipeDirection(direction);
     
     // Handle like/dislike
     if (currentPet) {
@@ -279,16 +280,17 @@ const Discovery = () => {
     }
     
     api.start({
-      x: isLike ? 300 : -300,
+      x: isLike ? window.innerWidth : -window.innerWidth,
       rotate: isLike ? 30 : -30,
       scale: 0.8,
-      config: { duration: 400 }
+      config: { mass: 0.5, tension: 400, friction: 50 }
     });
     
     setTimeout(() => {
       setCurrentPetIndex((prev) => (prev + 1) % pets.length);
       api.set({ x: 0, rotate: 0, scale: 1 });
-    }, 400);
+      setSwipeDirection(null);
+    }, 600);
   };
 
   const bind = useDrag(
