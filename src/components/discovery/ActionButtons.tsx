@@ -26,7 +26,7 @@ const ActionButtons = ({
   superLikesRemaining
 }: ActionButtonsProps) => {
   return (
-    <div className="flex justify-center gap-4 mt-8">
+    <div className="flex justify-center gap-4 z-10 relative">
       <Button
         onClick={onRewind}
         disabled={!canUndo || !canUseRewind}

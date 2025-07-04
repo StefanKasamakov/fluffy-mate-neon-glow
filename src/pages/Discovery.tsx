@@ -358,12 +358,12 @@ const Discovery = () => {
   };
 
   const bind = useDrag(
-    ({ active, movement: [mx, my], direction: [xDir, yDir], velocity: [vx, vy] }) => {
-      const triggerX = vx > 0.15 || Math.abs(mx) > 80;
-      const triggerY = vy > 0.15 || Math.abs(my) > 80;
+    ({ active, movement: [mx, my], direction: [xDir, yDir], velocity: [vx, vy], tap }) => {
+      const triggerX = vx > 0.2 || Math.abs(mx) > 50;
+      const triggerY = vy > 0.2 || Math.abs(my) > 50;
       const xDir_normalized = xDir < 0 ? -1 : 1;
       
-      if (!active && triggerY && my < -60) {
+      if (!active && triggerY && my < -50) {
         // Super like (swipe up)
         handleSwipe('up');
       } else if (!active && triggerX) {
@@ -395,8 +395,9 @@ const Discovery = () => {
       }
     },
     { 
-      bounds: { left: -250, right: 250, top: -250, bottom: 250 },
-      rubberband: 0.15
+      bounds: { left: -200, right: 200, top: -200, bottom: 200 },
+      rubberband: 0.1,
+      filterTaps: true
     }
   );
 
@@ -423,8 +424,8 @@ const Discovery = () => {
       <DiscoveryHeader onFilterOpen={() => setIsFilterOpen(true)} />
 
       {/* Card Stack */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="relative w-full max-w-sm">
+      <div className="flex-1 flex flex-col items-center justify-center p-4">
+        <div className="relative w-full max-w-sm mb-6">
           {/* Next Card (Preview) */}
           {nextPet && (
             <animated.div 
@@ -458,20 +459,22 @@ const Discovery = () => {
             zIndex={2}
           />
 
-          <ActionButtons
-            onRewind={handleRewind}
-            onDislike={() => handleSwipe('left')}
-            onSuperLike={handleSuperLike}
-            onLike={() => handleSwipe('right')}
-            canUndo={canUndo}
-            canUseRewind={canUseRewind}
-            canUseSuperLike={canUseSuperLike}
-            rewindsRemaining={rewindsRemaining}
-            superLikesRemaining={superLikesRemaining}
-          />
-
-          <BottomNavigation unreadCount={unreadCount} />
         </div>
+        
+        {/* Action Buttons */}
+        <ActionButtons
+          onRewind={handleRewind}
+          onDislike={() => handleSwipe('left')}
+          onSuperLike={handleSuperLike}
+          onLike={() => handleSwipe('right')}
+          canUndo={canUndo}
+          canUseRewind={canUseRewind}
+          canUseSuperLike={canUseSuperLike}
+          rewindsRemaining={rewindsRemaining}
+          superLikesRemaining={superLikesRemaining}
+        />
+
+        <BottomNavigation unreadCount={unreadCount} />
       </div>
 
       {/* Filter Modal */}
