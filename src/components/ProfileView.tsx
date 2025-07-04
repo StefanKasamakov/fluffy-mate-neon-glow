@@ -11,6 +11,7 @@ interface ProfileViewProps {
   onClose: () => void;
   petId: string | null;
   onLike?: (petId: string) => void;
+  onDislike?: (petId: string) => void;
   showLikeButton?: boolean;
 }
 
@@ -33,7 +34,7 @@ interface PetProfile {
   }[];
 }
 
-const ProfileView = ({ isOpen, onClose, petId, onLike, showLikeButton = false }: ProfileViewProps) => {
+const ProfileView = ({ isOpen, onClose, petId, onLike, onDislike, showLikeButton = false }: ProfileViewProps) => {
   const [profile, setProfile] = useState<PetProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
@@ -86,6 +87,15 @@ const ProfileView = ({ isOpen, onClose, petId, onLike, showLikeButton = false }:
   const handleLike = () => {
     if (profile && onLike) {
       onLike(profile.id);
+      onClose();
+    }
+  };
+
+  const handlePass = () => {
+    if (profile && onDislike) {
+      onDislike(profile.id);
+      onClose();
+    } else {
       onClose();
     }
   };
@@ -228,7 +238,7 @@ const ProfileView = ({ isOpen, onClose, petId, onLike, showLikeButton = false }:
               {showLikeButton && (
                 <div className="flex gap-3 pt-4">
                   <Button
-                    onClick={onClose}
+                    onClick={handlePass}
                     variant="outline"
                     className="flex-1 border-border"
                   >

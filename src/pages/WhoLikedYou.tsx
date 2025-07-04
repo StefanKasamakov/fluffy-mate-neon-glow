@@ -6,12 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Heart, Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import BottomNavigation from "@/components/discovery/BottomNavigation";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 
 const WhoLikedYou = () => {
   const [likes, setLikes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasPremium, setHasPremium] = useState(false);
   const { user } = useAuth();
+  const { unreadCount } = useUnreadMessages();
 
   const loadLikes = async () => {
     if (!user) return;
@@ -198,38 +201,7 @@ const WhoLikedYou = () => {
         )}
       </div>
 
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border">
-        <div className="flex justify-around py-2">
-          <Link to="/discovery" className="flex-1">
-            <Button variant="ghost" className="w-full h-16 flex flex-col gap-1">
-              <Heart className="w-5 h-5" />
-              <span className="text-xs">Discover</span>
-            </Button>
-          </Link>
-          
-          <Link to="/matches" className="flex-1">
-            <Button variant="ghost" className="w-full h-16 flex flex-col gap-1">
-              <div className="w-5 h-5 flex items-center justify-center">💬</div>
-              <span className="text-xs">Matches</span>
-            </Button>
-          </Link>
-          
-          <Link to="/premium" className="flex-1">
-            <Button variant="ghost" className="w-full h-16 flex flex-col gap-1">
-              <div className="w-5 h-5 flex items-center justify-center">⭐</div>
-              <span className="text-xs">Premium</span>
-            </Button>
-          </Link>
-          
-          <Link to="/profile" className="flex-1">
-            <Button variant="ghost" className="w-full h-16 flex flex-col gap-1">
-              <div className="w-5 h-5 flex items-center justify-center">👤</div>
-              <span className="text-xs">Profile</span>
-            </Button>
-          </Link>
-        </div>
-      </div>
+      <BottomNavigation unreadCount={unreadCount} />
     </div>
   );
 };

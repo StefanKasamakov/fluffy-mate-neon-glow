@@ -6,6 +6,8 @@ import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Moon, Sun, LogOut } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
+import BottomNavigation from "@/components/discovery/BottomNavigation";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 
 const Settings = () => {
   const { theme, setTheme } = useTheme();
@@ -13,6 +15,7 @@ const Settings = () => {
   const navigate = useNavigate();
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(false);
+  const { unreadCount } = useUnreadMessages();
 
   const handleLogout = async () => {
     await signOut();
@@ -134,6 +137,8 @@ const Settings = () => {
           </div>
         </Card>
       </div>
+
+      <BottomNavigation unreadCount={unreadCount} />
     </div>
   );
 };

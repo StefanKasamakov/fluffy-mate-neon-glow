@@ -4,8 +4,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Check, Star, Heart, Eye } from "lucide-react";
 import SettingsDropdown from "@/components/SettingsDropdown";
+import BottomNavigation from "@/components/discovery/BottomNavigation";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 
 const Premium = () => {
+  const { unreadCount } = useUnreadMessages();
   const features = [
     {
       icon: <Heart className="w-5 h-5" />,
@@ -166,6 +169,8 @@ const Premium = () => {
           </div>
         </div>
       </div>
+
+      <BottomNavigation unreadCount={unreadCount} />
     </div>
   );
 };

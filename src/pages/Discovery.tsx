@@ -491,6 +491,7 @@ const Discovery = () => {
         onClose={() => setProfileViewOpen(false)}
         petId={selectedPetId}
         onLike={handleLike}
+        onDislike={handleDislike}
         showLikeButton={true}
       />
 
