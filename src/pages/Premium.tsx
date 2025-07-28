@@ -50,7 +50,7 @@ const Premium = () => {
       price: "$19.99",
       period: "per month",
       popular: true,
-      features: ["Everything in Plus", "5 Super Licks per day", "1 Boost per month", "Rewind"]
+      features: ["Everything in Plus", "5 Super Licks per day", "1 Boost per month", "5 Rewinds per day"]
     },
     {
       name: "FluffyMatch Platinum",

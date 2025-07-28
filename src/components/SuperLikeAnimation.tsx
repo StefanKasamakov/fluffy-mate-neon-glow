@@ -43,16 +43,17 @@ export const SuperLikeAnimation = ({ isVisible, onComplete }: SuperLikeAnimation
         style={springs}
         className="text-8xl"
       >
-        🚀
+        👅
       </animated.div>
       <animated.div
         style={{
           ...springs,
-          scale: springs.scale.to(s => s * 0.6)
+          scale: springs.scale.to(s => s * 0.8),
+          rotate: springs.scale.to(s => `${s * 15}deg`)
         }}
         className="absolute text-6xl"
       >
-        👅
+        💖
       </animated.div>
       <animated.div
         style={{

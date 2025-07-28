@@ -38,7 +38,15 @@ const Discovery = () => {
   const { toast } = useToast();
   const { addSwipeAction, undoLastSwipe, canUndo } = useSwipeHistory();
   const { unreadCount } = useUnreadMessages();
-  const { canUseSuperLike, canUseRewind, useSuperLike, useRewind, superLikesRemaining, rewindsRemaining } = useDailyLimits();
+  const {
+    canUseSuperLike,
+    canUseRewind,
+    useSuperLike,
+    useRewind,
+    superLikesRemaining,
+    rewindsRemaining,
+    subscriptionTier
+  } = useDailyLimits();
   const [filters, setFilters] = useState<FilterSettings>({
     breed: "Any Breed",
     distance: 25,
@@ -506,6 +514,7 @@ const Discovery = () => {
         isOpen={limitModalOpen}
         onClose={() => setLimitModalOpen(false)}
         type={limitModalType}
+        subscriptionTier={subscriptionTier}
       />
 
       {/* Match Animation */}

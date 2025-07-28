@@ -6,13 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Heart, Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 import BottomNavigation from "@/components/discovery/BottomNavigation";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 
 const WhoLikedYou = () => {
   const [likes, setLikes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasPremium, setHasPremium] = useState(false);
+  const subscription = useSubscription();
   const { user } = useAuth();
   const { unreadCount } = useUnreadMessages();
 
@@ -67,30 +68,8 @@ const WhoLikedYou = () => {
     }
   };
 
-  const checkPremiumStatus = async () => {
-    if (!user) return;
-    
-    try {
-      const { data } = await supabase
-        .from('user_subscriptions')
-        .select('status, subscription_tier:subscription_tiers(features)')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .single();
-
-      const features = data?.subscription_tier?.features as any;
-      if (features?.see_who_liked) {
-        setHasPremium(true);
-      }
-    } catch (error) {
-      // User doesn't have premium subscription
-      setHasPremium(false);
-    }
-  };
-
   useEffect(() => {
     loadLikes();
-    checkPremiumStatus();
   }, [user]);
 
   if (loading) {
@@ -118,7 +97,7 @@ const WhoLikedYou = () => {
       </div>
 
       {/* Premium Banner */}
-      {!hasPremium && likes.length > 0 && (
+      {!subscription.canSeeWhoLikedYou && likes.length > 0 && (
         <div className="p-4 bg-gradient-accent/10 border-b border-border">
           <div className="flex items-center justify-center gap-2">
             <Crown className="w-5 h-5 text-neon-yellow" />
@@ -150,42 +129,42 @@ const WhoLikedYou = () => {
               <Card 
                 key={like.id} 
                 className={`p-4 bg-gradient-card border-border ${
-                  !hasPremium ? 'relative overflow-hidden' : ''
+                  !subscription.canSeeWhoLikedYou ? 'relative overflow-hidden' : ''
                 }`}
               >
                 <div className="text-center">
                   <div className="relative mb-3">
                     <img
                       src={like.photo}
-                      alt={hasPremium ? like.petName : "Premium required"}
+                      alt={subscription.canSeeWhoLikedYou ? like.petName : "Premium required"}
                       className={`w-20 h-20 object-cover rounded-full mx-auto ${
-                        !hasPremium ? 'blur-md' : ''
+                        !subscription.canSeeWhoLikedYou ? 'blur-md' : ''
                       }`}
                     />
-                    {like.verified && hasPremium && (
+                    {like.verified && subscription.canSeeWhoLikedYou && (
                       <Badge className="absolute -top-1 -right-1 w-6 h-6 p-0 bg-neon-green text-black text-xs flex items-center justify-center">
                         ✓
                       </Badge>
                     )}
-                    {!hasPremium && (
+                    {!subscription.canSeeWhoLikedYou && (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <Crown className="w-8 h-8 text-neon-yellow" />
                       </div>
                     )}
                   </div>
                   
-                  <h3 className={`font-medium mb-1 ${!hasPremium ? 'blur-sm' : ''}`}>
-                    {hasPremium ? like.petName : '••••••'}
+                  <h3 className={`font-medium mb-1 ${!subscription.canSeeWhoLikedYou ? 'blur-sm' : ''}`}>
+                    {subscription.canSeeWhoLikedYou ? like.petName : '••••••'}
                   </h3>
-                  <p className={`text-sm text-muted-foreground mb-1 ${!hasPremium ? 'blur-sm' : ''}`}>
-                    {hasPremium ? like.breed : '••••••••'}
+                  <p className={`text-sm text-muted-foreground mb-1 ${!subscription.canSeeWhoLikedYou ? 'blur-sm' : ''}`}>
+                    {subscription.canSeeWhoLikedYou ? like.breed : '••••••••'}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {like.likedAt}
                   </p>
                 </div>
 
-                {!hasPremium && (
+                {!subscription.canSeeWhoLikedYou && (
                   <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
                     <Link to="/premium">
                       <Button size="sm" className="bg-gradient-primary hover:opacity-90">

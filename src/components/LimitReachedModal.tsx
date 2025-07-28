@@ -6,9 +6,10 @@ interface LimitReachedModalProps {
   isOpen: boolean;
   onClose: () => void;
   type: 'superLike' | 'rewind';
+  subscriptionTier?: string;
 }
 
-export const LimitReachedModal = ({ isOpen, onClose, type }: LimitReachedModalProps) => {
+export const LimitReachedModal = ({ isOpen, onClose, type, subscriptionTier = 'free' }: LimitReachedModalProps) => {
   const navigate = useNavigate();
 
   const handleUpgrade = () => {
@@ -18,14 +19,18 @@ export const LimitReachedModal = ({ isOpen, onClose, type }: LimitReachedModalPr
 
   const content = {
     superLike: {
-      title: "Super Licks Used Up! 🚀",
-      description: "You've used all your Super Licks for today! Upgrade to Premium for unlimited Super Licks.",
-      icon: "🚀"
+      title: "You've used your free Super Lick for today!",
+      description: subscriptionTier === 'free' 
+        ? "Upgrade to FluffyMatch Gold or Platinum to send more daily Super Licks and unlock awesome perks."
+        : "You've used all your Super Licks for today! Upgrade to get more Super Licks.",
+      icon: "👅",
+      buttonText: "Upgrade Now"
     },
     rewind: {
-      title: "Rewinds Used Up! ⏪",
-      description: "You've used all your Rewinds for today! Upgrade to Premium for unlimited Rewinds.",
-      icon: "⏪"
+      title: "Oops! You've used all 5 of your daily Rewinds.",
+      description: "Subscribe to FluffyMatch Gold or higher to unlock unlimited Rewinds!",
+      icon: "⏪",
+      buttonText: "See Plans"
     }
   };
 
@@ -49,7 +54,7 @@ export const LimitReachedModal = ({ isOpen, onClose, type }: LimitReachedModalPr
               onClick={handleUpgrade}
               className="w-full bg-gradient-primary hover:opacity-90 shadow-button"
             >
-              Upgrade to Premium
+              {content[type].buttonText}
             </Button>
             
             <Button 
