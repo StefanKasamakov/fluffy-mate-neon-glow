@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { X, SlidersHorizontal } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FilterModalProps {
   isOpen: boolean;
@@ -23,19 +25,51 @@ export interface FilterSettings {
 
 const FilterModal = ({ isOpen, onClose, onApply, currentFilters }: FilterModalProps) => {
   const [filters, setFilters] = useState<FilterSettings>(currentFilters);
+  const [breeds, setBreeds] = useState<string[]>(["Any Breed"]);
+  const [loading, setLoading] = useState(false);
 
-  const breeds = [
-    "Any Breed",
-    "Golden Retriever",
-    "Labrador",
-    "Persian Cat",
-    "Siamese Cat",
-    "Bulldog",
-    "German Shepherd",
-    "Poodle",
-    "Beagle",
-    "Rottweiler"
-  ];
+  // Load breeds from database
+  useEffect(() => {
+    loadBreeds();
+  }, []);
+
+  // Update filters when currentFilters changes
+  useEffect(() => {
+    setFilters(currentFilters);
+  }, [currentFilters]);
+
+  const loadBreeds = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('pets')
+        .select('breed')
+        .not('breed', 'is', null)
+        .order('breed');
+
+      if (error) throw error;
+
+      const uniqueBreeds = [...new Set(data?.map(pet => pet.breed) || [])];
+      setBreeds(["Any Breed", ...uniqueBreeds.sort()]);
+    } catch (error) {
+      console.error('Error loading breeds:', error);
+      // Fallback to default breeds
+      setBreeds([
+        "Any Breed",
+        "Golden Retriever",
+        "Labrador",
+        "Persian Cat",
+        "Siamese Cat",
+        "Bulldog",
+        "German Shepherd",
+        "Poodle",
+        "Beagle",
+        "Rottweiler"
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleApply = () => {
     onApply(filters);
@@ -45,8 +79,8 @@ const FilterModal = ({ isOpen, onClose, onApply, currentFilters }: FilterModalPr
   const handleReset = () => {
     const resetFilters: FilterSettings = {
       breed: "Any Breed",
-      distance: 25,
-      ageRange: [1, 10],
+      distance: 100,
+      ageRange: [1, 15],
       gender: "any",
       verifiedOnly: false
     };
@@ -57,9 +91,9 @@ const FilterModal = ({ isOpen, onClose, onApply, currentFilters }: FilterModalPr
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
-      <Card className="w-full bg-card border-t border-border rounded-t-2xl p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+      <Card className="w-full bg-card border-t border-border rounded-t-2xl max-h-[80vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between p-6 pb-4 border-b border-border">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-5 h-5 text-accent" />
             <h2 className="text-lg font-semibold">Filters</h2>
@@ -68,6 +102,9 @@ const FilterModal = ({ isOpen, onClose, onApply, currentFilters }: FilterModalPr
             <X className="w-4 h-4" />
           </Button>
         </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
         {/* Breed Filter */}
         <div className="space-y-3">
@@ -88,7 +125,7 @@ const FilterModal = ({ isOpen, onClose, onApply, currentFilters }: FilterModalPr
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium">Distance</label>
-            <Badge variant="secondary">{filters.distance} miles</Badge>
+            <Badge variant="secondary">Within {filters.distance} miles</Badge>
           </div>
           <Slider
             value={[filters.distance]}
@@ -96,7 +133,7 @@ const FilterModal = ({ isOpen, onClose, onApply, currentFilters }: FilterModalPr
             max={100}
             min={1}
             step={1}
-            className="w-full"
+            className="w-full [&>.relative]:bg-gradient-to-r [&>.relative]:from-primary [&>.relative]:to-primary-glow"
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>1 mile</span>
@@ -116,7 +153,7 @@ const FilterModal = ({ isOpen, onClose, onApply, currentFilters }: FilterModalPr
             max={15}
             min={1}
             step={1}
-            className="w-full transition-all duration-200 ease-in-out"
+            className="w-full transition-all duration-200 ease-in-out [&>.relative]:bg-gradient-to-r [&>.relative]:from-primary [&>.relative]:to-primary-glow"
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>1 year</span>
@@ -135,6 +172,7 @@ const FilterModal = ({ isOpen, onClose, onApply, currentFilters }: FilterModalPr
               <SelectItem value="any">Any Gender</SelectItem>
               <SelectItem value="male">Male</SelectItem>
               <SelectItem value="female">Female</SelectItem>
+              <SelectItem value="unknown">Unknown</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -145,23 +183,23 @@ const FilterModal = ({ isOpen, onClose, onApply, currentFilters }: FilterModalPr
             <label className="text-sm font-medium">Verified Pets Only</label>
             <p className="text-xs text-muted-foreground">Show only pets with health verification</p>
           </div>
-          <Button
-            variant={filters.verifiedOnly ? "default" : "secondary"}
-            size="sm"
-            onClick={() => setFilters({...filters, verifiedOnly: !filters.verifiedOnly})}
-          >
-            {filters.verifiedOnly ? "On" : "Off"}
-          </Button>
+          <Switch
+            checked={filters.verifiedOnly}
+            onCheckedChange={(checked) => setFilters({...filters, verifiedOnly: checked})}
+          />
+        </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 pt-4">
-          <Button variant="ghost" onClick={handleReset} className="flex-1">
-            Reset
-          </Button>
-          <Button onClick={handleApply} className="flex-1 bg-gradient-primary hover:opacity-90 shadow-button">
-            Apply Filters
-          </Button>
+        {/* Sticky Action Buttons */}
+        <div className="border-t border-border p-6 bg-card">
+          <div className="flex gap-3">
+            <Button variant="ghost" onClick={handleReset} className="flex-1">
+              Reset
+            </Button>
+            <Button onClick={handleApply} className="flex-1 bg-gradient-primary hover:opacity-90 shadow-button">
+              Apply Filters
+            </Button>
+          </div>
         </div>
       </Card>
     </div>

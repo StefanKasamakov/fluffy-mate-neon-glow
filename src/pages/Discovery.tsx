@@ -49,8 +49,8 @@ const Discovery = () => {
   } = useDailyLimits();
   const [filters, setFilters] = useState<FilterSettings>({
     breed: "Any Breed",
-    distance: 25,
-    ageRange: [1, 10],
+    distance: 100,
+    ageRange: [1, 15],
     gender: "any",
     verifiedOnly: false
   });
@@ -62,6 +62,13 @@ const Discovery = () => {
     loadPets();
     loadUserPet();
   }, [user]);
+
+  // Reload pets when filters change
+  useEffect(() => {
+    if (user) {
+      loadPets();
+    }
+  }, [filters]);
 
   // Calculate distance between two coordinates using Haversine formula
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -212,6 +219,28 @@ const Discovery = () => {
         query = query.neq('user_id', user.id);
       }
 
+      // Apply breed filter
+      if (filters.breed && filters.breed !== "Any Breed") {
+        query = query.eq('breed', filters.breed);
+      }
+
+      // Apply gender filter
+      if (filters.gender && filters.gender !== "any") {
+        query = query.eq('gender', filters.gender);
+      }
+
+      // Apply age range filter
+      if (filters.ageRange && filters.ageRange.length === 2) {
+        query = query
+          .gte('age', filters.ageRange[0])
+          .lte('age', filters.ageRange[1]);
+      }
+
+      // Apply verified filter
+      if (filters.verifiedOnly) {
+        query = query.eq('verified', true);
+      }
+
       const { data, error } = await query;
 
       if (error) throw error;
@@ -232,13 +261,14 @@ const Discovery = () => {
         }
       }
 
-      // Transform data to match the component's expected format
-      const transformedPets = data?.map(pet => {
+      // Transform data and apply distance filter
+      let transformedPets = data?.map(pet => {
         let locationDisplay = pet.location || 'Location not specified';
+        let distance = null;
         
         // Calculate distance if both user and pet have coordinates
         if (userLocation && pet.latitude && pet.longitude) {
-          const distance = calculateDistance(
+          distance = calculateDistance(
             userLocation.lat,
             userLocation.lon,
             pet.latitude,
@@ -256,11 +286,20 @@ const Discovery = () => {
           description: pet.description || 'No description available.',
           photo: pet.pet_photos?.[0]?.photo_url || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=600&fit=crop',
           verified: pet.verified || false,
-          owner: pet.owner_name || 'Anonymous'
+          owner: pet.owner_name || 'Anonymous',
+          distance: distance
         };
       }) || [];
 
+      // Apply distance filter if we have location data
+      if (userLocation && filters.distance) {
+        transformedPets = transformedPets.filter(pet => 
+          pet.distance === null || pet.distance <= filters.distance
+        );
+      }
+
       setPets(transformedPets);
+      setCurrentPetIndex(0); // Reset to first pet when filters change
     } catch (error) {
       console.error('Error loading pets:', error);
       // Fallback to demo data if database fails
@@ -433,7 +472,6 @@ const Discovery = () => {
 
   const handleApplyFilters = (newFilters: FilterSettings) => {
     setFilters(newFilters);
-    // In real app, this would trigger a new API call with filters
   };
 
   const handleProfileClick = () => {
