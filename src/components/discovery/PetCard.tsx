@@ -14,8 +14,9 @@ interface PetCardProps {
 
 const PetCard = ({ pet, style, bind, cardRef, onClick, zIndex }: PetCardProps) => {
   const handleClick = (e: React.MouseEvent) => {
-    // Only trigger click if it's not a drag operation
+    // Only trigger click if it's not a drag operation and not during animation
     e.stopPropagation();
+    e.preventDefault();
     onClick();
   };
 
@@ -31,12 +32,17 @@ const PetCard = ({ pet, style, bind, cardRef, onClick, zIndex }: PetCardProps) =
     >
       {/* Image */}
       <div 
-        className="relative h-96" 
+        className="relative h-96 pointer-events-none" 
       >
         <img
           src={pet.photo}
           alt={pet.name}
-          className="w-full h-full object-cover cursor-pointer"
+          className="w-full h-full object-cover pointer-events-none"
+        />
+        
+        {/* Clickable overlay for profile */}
+        <div 
+          className="absolute inset-0 cursor-pointer"
           onClick={handleClick}
         />
         

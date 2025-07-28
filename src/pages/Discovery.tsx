@@ -366,46 +366,68 @@ const Discovery = () => {
   };
 
   const bind = useDrag(
-    ({ active, movement: [mx, my], direction: [xDir, yDir], velocity: [vx, vy], tap }) => {
-      const triggerX = vx > 0.2 || Math.abs(mx) > 50;
-      const triggerY = vy > 0.2 || Math.abs(my) > 50;
+    ({ active, movement: [mx, my], direction: [xDir, yDir], velocity: [vx, vy], tap, first, last }) => {
+      const triggerX = vx > 0.3 || Math.abs(mx) > 80;
+      const triggerY = vy > 0.3 || Math.abs(my) > 80;
       const xDir_normalized = xDir < 0 ? -1 : 1;
       
-      if (!active && triggerY && my < -50) {
-        // Super like (swipe up)
-        handleSwipe('up');
-      } else if (!active && triggerX) {
-        // Regular swipe left/right
-        handleSwipe(xDir_normalized > 0 ? 'right' : 'left');
-      } else {
+      // Prevent profile opening during swipe gestures
+      if (first && (Math.abs(mx) > 10 || Math.abs(my) > 10)) {
+        // This is a drag, not a tap
+      }
+      
+      if (!active && last) {
+        if (triggerY && my < -80) {
+          // Super like (swipe up)
+          handleSwipe('up');
+          return;
+        } else if (triggerX) {
+          // Regular swipe left/right
+          handleSwipe(xDir_normalized > 0 ? 'right' : 'left');
+          return;
+        }
+      }
+      
+      if (active) {
+        // During drag, move the card
         api.start({
-          x: active ? mx : 0,
-          y: active ? my : 0,
-          rotate: active ? mx / 12 : 0,
-          scale: active ? 1.02 : 1,
-          immediate: (name) => active && (name === 'x' || name === 'y')
+          x: mx,
+          y: my,
+          rotate: mx / 10,
+          scale: 1.05,
+          immediate: true
         });
 
         // Animate next card on drag
-        if (active && (Math.abs(mx) > 30 || Math.abs(my) > 30)) {
+        if (Math.abs(mx) > 40 || Math.abs(my) > 40) {
           nextApi.start({
             scale: 0.98,
-            x: mx * 0.08,
-            config: { tension: 300, friction: 30 }
-          });
-        } else if (!active) {
-          nextApi.start({
-            scale: 0.95,
-            x: 0,
+            x: mx * 0.05,
             config: { tension: 300, friction: 30 }
           });
         }
+      } else {
+        // Return to original position if no swipe triggered
+        api.start({
+          x: 0,
+          y: 0,
+          rotate: 0,
+          scale: 1,
+          config: { tension: 300, friction: 40 }
+        });
+
+        nextApi.start({
+          scale: 0.95,
+          x: 0,
+          config: { tension: 300, friction: 30 }
+        });
       }
     },
     { 
-      bounds: { left: -200, right: 200, top: -200, bottom: 200 },
-      rubberband: 0.1,
-      filterTaps: true
+      bounds: { left: -300, right: 300, top: -300, bottom: 300 },
+      rubberband: 0.2,
+      filterTaps: true,
+      threshold: 10
     }
   );
 
