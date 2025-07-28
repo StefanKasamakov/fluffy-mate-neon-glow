@@ -241,9 +241,42 @@ const Discovery = () => {
         query = query.eq('verified', true);
       }
 
-      const { data, error } = await query;
-
+      const { data: allPets, error } = await query;
       if (error) throw error;
+
+      // Get user's pet ID to check for matches
+      let userPetId = null;
+      if (user) {
+        const { data: userPetData } = await supabase
+          .from('pets')
+          .select('id')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (userPetData) {
+          userPetId = userPetData.id;
+        }
+      }
+
+      // Get matched pet IDs to exclude them
+      let matchedPetIds: string[] = [];
+      if (userPetId) {
+        const { data: matches } = await supabase
+          .from('matches')
+          .select('pet1_id, pet2_id')
+          .or(`pet1_id.eq.${userPetId},pet2_id.eq.${userPetId}`);
+        
+        if (matches) {
+          matchedPetIds = matches.map(match => 
+            match.pet1_id === userPetId ? match.pet2_id : match.pet1_id
+          );
+        }
+      }
+
+      // Filter out matched pets from the results
+      let filteredData = allPets?.filter(pet => !matchedPetIds.includes(pet.id)) || [];
 
       // Get current user's location for distance calculation
       let userLocation: { lat: number; lon: number } | null = null;
@@ -262,7 +295,7 @@ const Discovery = () => {
       }
 
       // Transform data and apply distance filter
-      let transformedPets = data?.map(pet => {
+      let transformedPets = filteredData?.map(pet => {
         let locationDisplay = pet.location || 'Location not specified';
         let distance = null;
         
@@ -483,64 +516,65 @@ const Discovery = () => {
     return <LoadingState />;
   }
 
-  if (!currentPet || pets.length === 0) {
-    return <EmptyState />;
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <DiscoveryHeader onFilterOpen={() => setIsFilterOpen(true)} />
 
-      {/* Card Stack */}
+      {/* Card Stack or Empty State */}
       <div className="flex-1 flex flex-col items-center justify-center p-4">
-        <div className="relative w-full max-w-sm mb-6">
-          {/* Next Card (Preview) */}
-          {nextPet && (
-            <animated.div 
-              style={{ 
-                transform: nextX.to(x => `translateX(${x}px)`),
-                scale: nextScale,
-                zIndex: 1
-              }}
-              className="absolute inset-0 bg-gradient-card border border-border rounded-2xl overflow-hidden shadow-card opacity-60"
-            >
-              <img
-                src={nextPet.photo}
-                alt={nextPet.name}
-                className="w-full h-96 object-cover"
+        {!currentPet || pets.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <>
+            <div className="relative w-full max-w-sm mb-6">
+              {/* Next Card (Preview) */}
+              {nextPet && (
+                <animated.div 
+                  style={{ 
+                    transform: nextX.to(x => `translateX(${x}px)`),
+                    scale: nextScale,
+                    zIndex: 1
+                  }}
+                  className="absolute inset-0 bg-gradient-card border border-border rounded-2xl overflow-hidden shadow-card opacity-60"
+                >
+                  <img
+                    src={nextPet.photo}
+                    alt={nextPet.name}
+                    className="w-full h-96 object-cover"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/80 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                    <h3 className="text-xl font-bold">{nextPet.name}</h3>
+                    <p className="text-sm opacity-90">{nextPet.age} years • {nextPet.breed}</p>
+                  </div>
+                </animated.div>
+              )}
+
+              {/* Main Card */}
+              <PetCard
+                pet={currentPet}
+                style={{ x, y, rotate: rotate.to((r: number) => `${r}deg`), scale }}
+                bind={bind}
+                cardRef={cardRef}
+                onClick={handleProfileClick}
+                zIndex={2}
               />
-              <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/80 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                <h3 className="text-xl font-bold">{nextPet.name}</h3>
-                <p className="text-sm opacity-90">{nextPet.age} years • {nextPet.breed}</p>
-              </div>
-            </animated.div>
-          )}
-
-          {/* Main Card */}
-          <PetCard
-            pet={currentPet}
-            style={{ x, y, rotate: rotate.to((r: number) => `${r}deg`), scale }}
-            bind={bind}
-            cardRef={cardRef}
-            onClick={handleProfileClick}
-            zIndex={2}
-          />
-
-        </div>
-        
-        {/* Action Buttons */}
-        <ActionButtons
-          onRewind={handleRewind}
-          onDislike={() => handleSwipe('left')}
-          onSuperLike={handleSuperLike}
-          onLike={() => handleSwipe('right')}
-          canUndo={canUndo}
-          canUseRewind={canUseRewind}
-          canUseSuperLike={canUseSuperLike}
-          rewindsRemaining={rewindsRemaining}
-          superLikesRemaining={superLikesRemaining}
-        />
+            </div>
+            
+            {/* Action Buttons */}
+            <ActionButtons
+              onRewind={handleRewind}
+              onDislike={() => handleSwipe('left')}
+              onSuperLike={handleSuperLike}
+              onLike={() => handleSwipe('right')}
+              canUndo={canUndo}
+              canUseRewind={canUseRewind}
+              canUseSuperLike={canUseSuperLike}
+              rewindsRemaining={rewindsRemaining}
+              superLikesRemaining={superLikesRemaining}
+            />
+          </>
+        )}
 
         <BottomNavigation unreadCount={unreadCount} />
       </div>
